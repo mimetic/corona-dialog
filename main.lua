@@ -5,23 +5,35 @@ storyboard.isDebug = true
 local dialog = require ("dialog")
 
 
-
+-- A function the dialog can call with the results,
+-- to save them or use them.
+-- The alternative is to check "storyboard.dialogResults" which is set by the dialog.
+local function saveResults(results)
+	funx.dump(results)
+	if (results) then
+		local fn = "saved_dialog_values"
+		local res = funx.saveTable(results, fn .. ".json", system.DocumentsDirectory)
+		if (not res) then
+			funx.telluser("SYSTEM ERROR: Could not save the results!")
+		end
+	end
+end
 
 
 
 local function OpenDialogButtonRelease()
-
 	local params = {
 		username = "dgross",
 		password = "pass",
 		syspassword = "syspass",
 		email = "dgross@mimetic.com",
 		paramsFileName = "dialog_saved_params",
+		saveResults = saveResults,	-- set this function or have another scene check storyboard.dialogResults
 	}
 
 	local options = {
 		effect = "fade",
-		time = 500,
+		time = 250,
 		isModal = true,
 		params = params,
 	}
@@ -70,6 +82,7 @@ scene:addEventListener( "overlayBegan" )
 -- the following event is dispatched once overlay is removed
 function scene:overlayEnded( event )
     print( "Main scene says, Overlay removed: " .. event.sceneName )
+	funx.dump(storyboard.dialogResults)
 end
 scene:addEventListener( "overlayEnded" )
 

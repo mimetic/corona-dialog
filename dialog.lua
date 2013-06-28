@@ -28,7 +28,6 @@
 
 local S = {}
 
---local widget = require "widget-v1"
 local widget = require "widget"
 local settingsLib = require("settings")
 local onSwipe = require("onSwipe")
@@ -393,9 +392,9 @@ end
 -- Called when scene is about to move offscreen:
 function scene:exitScene( event )
 	local group = self.view
-
-funx.dump(event.params)
-local params = group.params
+	local results = {}
+	-- Get the params, saved for us by enterScene
+	local params = group.params
 
 	-- Remove the settings elements, since these might change and are rebuilt each time.
 	group.dialogElements:removeSelf()
@@ -403,21 +402,21 @@ local params = group.params
 	if (self.nativeTextfields) then
 		-- Get text field values
 		for i,f in pairs(self.nativeTextfields) do
-			params[i] = f.text
+			results[i] = f.text
 			funx.tellUser ( "Text entered = " ..  f.text )
 			f:removeSelf()
 		end
 
-		if (params) then
-			local fn = params.paramsFileName or "saved_dialog_values"
-			local res = funx.saveTable(params, fn .. ".json", system.DocumentsDirectory)
-			if (not res) then
-				funx.telluser("SYSTEM ERROR: Could not save the settings!")
-			end
-		end
-
 		self.nativeTextfields = nil
 	end
+
+	storyboard.overlayResults = results
+
+	-- Here is our trick for passing the results
+	if (params.saveResults) then
+		params.saveResults(results)
+	end
+
 end
 
 
@@ -471,11 +470,12 @@ scene:addEventListener( "didExitScene", scene )
 -- storyboard.purgeScene() or storyboard.removeScene().
 scene:addEventListener( "destroyScene", scene )
 
+-- DO NOT NEED BECAUSE THE DIALOG IS AN OVERLAY AND CANNOT CALL ANOTHER ONE
 -- "overlayBegan" event is dispatched when an overlay scene is shown
-scene:addEventListener( "overlayBegan", scene )
+--scene:addEventListener( "overlayBegan", scene )
 
 -- "overlayEnded" event is dispatched when an overlay scene is hidden/removed
-scene:addEventListener( "overlayEnded", scene )
+--scene:addEventListener( "overlayEnded", scene )
 
 ---------------------------------------------------------------------------------
 
