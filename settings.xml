@@ -1,0 +1,1573 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<settings>
+
+	<comments>
+		(This node is ignored by the parser.)
+
+		NOTE: DEFAULT SETTINGS FILE
+		Values here will be over-ridden by values in the user settings file, "_user/settings.xml"
+
+		- "true" and "false" are translated to booleans
+		- a number written as a percent, e.g. 10%, can be interpreted later, but is read as a string
+		- Numbers are returned as numeric, not string
+		- hAlignment = left, right or center
+		- slideview.autoFadeToolsTime > 0 means slideView is handling navbar + tools, etc., auto fading
+		  don't also set navbar.autoFadeTime, but leave it at "0"
+
+		- pageMarkNumbering = "chapter" or "book"
+		  Date formatting:
+		  http://www.lua.org/pil/22.1.html
+
+	</comments>
+
+	<class value="app">
+
+		<developing value="false" />
+		<checkForMissingFiles value="false" />
+		<buildImageSizeFile value="false" />
+		<developingShowGuides value="false" />
+
+
+		<!-- App Store info -->
+		<ios value="643357656" />
+		<android value="" />
+		<AppleURL>itms-apps://itunes.apple.com/app/pages/id643357656?mt=8&uo=4</AppleURL>
+        <AndroidURL>market://details?id=</AndroidURL>
+
+
+		<doNotUseInternet value="false" />
+
+		<isSingleBookApp value="true" />
+		<bookLibraryDirName value="shelves" />
+
+
+		<coverUpScreenEdges value="true" />
+
+		<statusBarOnStartup value="false" />
+		
+		<pagetext>Page</pagetext>
+
+
+
+		<draggablePictures value="false" />
+		<draggableButtons value="false" />
+
+		<targetDeviceScreenSize value="1024,768" alt="480,320" />
+		
+		<validBookOrientations value="landscape" alt="landscape,portrait" />
+		
+		<defaultLanguage value="english" />
+		<iap value="true" />
+		<thumbnailSuffix value="-thumb" />
+		<lookForThumbnails value="true" />
+		<uploadablePicturesSuffix value="-public" />
+		
+		<usingFaceBook value="true" />
+		<usingTwitter value="true" />
+
+		<playIntro value="" alt="open" alt2="start" />
+		<fadeInOnResume value="true" />
+
+		<loadImageMethod value="false" comment="funx.loadImageFile method: false=Corona" />
+
+		<adjustFontsToBaseline value="true" comment="use fontmetrics.txt to position fonts on baseline, in some places" />
+
+		<tabBarHeight value="0" alt="50"/>
+		<currentStateFilename value="currentstate" comment="Do not incude the suffix, e.g. .json!" />
+		
+		<userSettingsIsActive value="false" />
+		<userSettingsFileName value="user_settings" comment="Do not incude the suffix, e.g. .json!" />
+		
+		
+		<!-- Ask customer to rate the app after this many times run, then repeat until yes or no -->
+		<rateAfterTimesRun value="3" />
+		<repeatRequestToRate value="5" />
+		
+		<!-- dir and path to caches -->
+		<cachesDir value="caches" />
+		<itemCacheDirPrefix value="book_" />
+		<pageCachePrefix value="page_" />
+		<textwrapCachePrefix value="textwrap_" />
+
+		<noInternetMsg>No Internet Connection.</noInternetMsg>
+
+	</class>
+
+
+	<class value="shelves">
+
+		<Xorientations value="false" alt="portrait, portraitUpsideDown" all="portrait, portraitUpsideDown, landscapeLeft, landscapeRight" />
+		<itemInfoFileName value="item.json" />
+		<salesRecordFilename value="sales_record.json" />
+
+		<msgUpdatingShelves>Updating bookshelves from the server.</msgUpdatingShelves>
+		<msgDownloadFailed>Downloading failed: Ask for help!</msgDownloadFailed>
+		<msgUnpackingDownload>Download complete, unpacking your book.</msgUnpackingDownload>
+		<msgDownloadFailed>Your book failed to download.</msgDownloadFailed>
+		<msgNoServerConnection>Cannot connect to the book server.</msgNoServerConnection>
+		<msgCannotDownload>Cannot download book.</msgCannotDownload>
+		<msgCannotLoadBook>Something is wrong, I cannot load the book!</msgCannotLoadBook>
+		<msgUpdatingPublishers>Updating the list of publishers.</msgUpdatingPublishers>
+
+
+		<anonymousAuthorName value="Anonymous" />
+
+
+
+		<!-- http shelves file access -->
+
+
+
+
+<!-- BLOOKIFY SETTINGS -->
+
+				<!-- SHELVES -->
+				<!-- HTTP -->
+				<!-- Cannot start with http:// because we add username/password to the URL -->
+				<!-- Should NOT end with a slash! -->
+				<httpShelvesServer value="www.blookify.com" />
+				<httpShelvesServerURL value="www.blookify.com/wp-content/uploads/mb-shelves" />
+				<XhttpServerUsername value="dgross"/>
+				<XhttpServerPassword value="nookie"/>
+
+				<!-- Should NOT end with a slash! -->
+				<httpRemoteShelvesPath value="wp-content/uploads/mb-shelves" />
+
+
+				<!-- FTP -->
+				<serverhost value="blookify.com" />
+				<serveruser value="mobile@blookify.com" />
+				<serverpassword value="oS?CO{~]M!x!" />
+				<remoteShelvesPath value="wp-content/uploads/mb-shelves" />
+
+
+				<!-- PUBLISHERS -->
+				<!-- HTTP -->
+				<!-- Should NOT end with a slash! -->
+				<httpRemotePublishersPath value="wp-content/uploads/mb-publishers" />
+
+				<!-- Cannot start with http:// because we add username/password to the URL -->
+				<!-- do not end with slash -->
+				<httpPublishersServer value="www.blookify.com" />
+				<httpPublishersServerURL value="www.blookify.com/wp-content/uploads/mb-publishers" />
+
+				<remotePublishersPath value="www.blookify.com/wp-content/uploads/mb-publishers" />
+
+				<!-- unused-->
+				<remoteItemDatasetPath value="www.blookify.com/wp-content/uploads/mb-publishers" />
+				<remoteListRowImagesURL value="http://www.blookify.com/wp-content/uploads/mb-publishers" />
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- MAKER.MIMETIC.COM SETTINGS -->
+
+				<!-- SHELVES -->
+				<!-- HTTP -->
+				<!-- Cannot start with http:// because we add username/password to the URL -->
+				<!-- Should NOT end with a slash! -->
+				<httpShelvesServer value="maker.mimetic.com" />
+				<httpShelvesServerURL value="maker.mimetic.com/wp-content/uploads/mb-shelves" />
+				<XhttpServerUsername value="dgross"/>
+				<XhttpServerPassword value="nookie"/>
+
+				<!-- Should NOT end with a slash! -->
+				<httpRemoteShelvesPath value="wp-content/uploads/mb-shelves" />
+
+
+				<!-- FTP -->
+				<serverhost value="blookify.com" />
+				<serveruser value="mobile@blookify.com" />
+				<serverpassword value="oS?CO{~]M!x!" />
+				<remoteShelvesPath value="wp-content/uploads/mb-shelves" />
+
+
+				<!-- PUBLISHERS -->
+				<!-- HTTP -->
+				<!-- Should NOT end with a slash! -->
+				<httpRemotePublishersPath value="wp-content/uploads/mb-publishers" />
+
+				<!-- Cannot start with http:// because we add username/password to the URL -->
+				<!-- do not end with slash -->
+				<httpPublishersServer value="maker.mimetic.com" />
+				<httpPublishersServerURL value="maker.mimetic.com/wp-content/uploads/mb-publishers" />
+
+				<remotePublishersPath value="maker.mimetic.com/wp-content/uploads/mb-publishers" />
+
+				<!-- unused-->
+				<remoteItemDatasetPath value="maker.mimetic.com/wp-content/uploads/mb-publishers" />
+				<remoteListRowImagesURL value="http://maker.mimetic.com/wp-content/uploads/mb-publishers" />
+
+
+
+
+
+
+
+<!-- MOVE AFTER REAL VALUES FOR TESTING -->
+<!-- LOCALHOST TESTING -->
+
+
+				<!-- LOCALHOST TESTING -->
+				<!-- HTTP -->
+				<!-- Should NOT end with a slash! -->
+				<httpRemoteShelvesPath value="photobook/wordpress/wp-content/uploads/mb-shelves" />
+
+				<!-- Cannot start with http:// because we add username/password to the URL -->
+				<!-- do not end with slash -->
+				<httpShelvesServer value="localhost" />
+				<httpShelvesServerURL value="localhost/photobook/wordpress/wp-content/uploads/mb-shelves" />
+				<XhttpServerUsername value="digross"/>
+				<XhttpServerPassword value="nookie"/>
+
+				<!-- FTP -->
+				<serverhost value="localhost" />
+				<serveruser value="dgross" />
+				<serverpassword value="nookie" />
+
+				<remoteShelvesPath value="photobook/wordpress/wp-content/uploads/mb-shelves" />
+
+				<!-- unused-->
+				<remoteItemDatasetPath value="photobook/wordpress/wp-content/uploads/mb-shelves" />
+				<remoteListRowImagesURL value="http://localhost/photobook/wordpress/wp-content/uploads/mb-shelves" />
+
+				<!-- PUBLISHERS -->
+				<!-- HTTP -->
+				<!-- Should NOT end with a slash! -->
+				<httpRemotePublishersPath value="photobook/wordpress/wp-content/uploads/mb-publishers" />
+
+				<!-- Cannot start with http:// because we add username/password to the URL -->
+				<!-- do not end with slash -->
+				<httpPublishersServer value="localhost" />
+				<httpPublishersServerURL value="localhost/photobook/wordpress/wp-content/uploads/mb-publishers" />
+				<XhttpServerUsername value="digross"/>
+				<XhttpServerPassword value="nookie"/>
+
+				<remotePublishersPath value="photobook/wordpress/wp-content/uploads/mb-publishers" />
+
+				<!-- unused-->
+				<remoteItemDatasetPath value="photobook/wordpress/wp-content/uploads/mb-publishers" />
+				<remoteListRowImagesURL value="http://localhost/photobook/wordpress/wp-content/uploads/mb-publishers" />
+
+
+
+
+
+
+
+<!-- THE NEW REPORTER SETTINGS -->
+
+
+				<!-- SHELVES -->
+				<!-- HTTP -->
+				<!-- Cannot start with http:// because we add username/password to the URL -->
+				<!-- Should NOT end with a slash! -->
+				<httpShelvesServer value="www.thenewreporter.com" />
+				<httpShelvesServerURL value="www.thenewreporter.com/wp-content/uploads/mb-shelves" />
+				<XhttpServerUsername value="dgross"/>
+				<XhttpServerPassword value="nookie"/>
+
+				<!-- Should NOT end with a slash! -->
+				<httpRemoteShelvesPath value="wp-content/uploads/mb-shelves" />
+
+
+				<!-- FTP -->
+				<serverhost value="thenewreporter.com" />
+				<serveruser value="mobile@thenewreporter.com" />
+				<serverpassword value="oS?CO{~]M!x!" />
+				<remoteShelvesPath value="wp-content/uploads/mb-shelves" />
+
+
+				<!-- PUBLISHERS -->
+				<!-- HTTP -->
+				<!-- Should NOT end with a slash! -->
+				<httpRemotePublishersPath value="wp-content/uploads/mb-publishers" />
+
+				<!-- Cannot start with http:// because we add username/password to the URL -->
+				<!-- do not end with slash -->
+				<httpPublishersServer value="www.thenewreporter.com" />
+				<httpPublishersServerURL value="www.thenewreporter.com/wp-content/uploads/mb-publishers" />
+				<XhttpServerUsername value="digross"/>
+				<XhttpServerPassword value="nookie"/>
+
+				<remotePublishersPath value="www.thenewreporter.com/wp-content/uploads/mb-publishers" />
+
+				<!-- unused-->
+				<remoteItemDatasetPath value="www.thenewreporter.com/wp-content/uploads/mb-publishers" />
+				<remoteListRowImagesURL value="http://www.thenewreporter.com/wp-content/uploads/mb-publishers" />
+
+
+
+
+
+
+		<!-- NETWORKING VALUES: NO NEED TO CHANGE FOR TESTING -->
+		<serverport value="21" />
+
+		<publishersPath value="publishers" />
+
+		<remotePublishersFilename value="publishers.json" />
+		<remoteShelvesFilename value="shelves.json" />
+
+		<localPublishersFilename value="publishers.json" />
+		<localShelvesFilename value="shelves.json" />
+
+
+
+
+		<!-- Shelves Display -->
+		
+		<shelfTitle value="" />
+
+		<itemIconFileName value="icon.png" />
+		<itemPosterFileName value="poster.jpg" />
+		<itemDatasetFileName value="item.tar" />
+		
+		<notDownloadedIconAlpha value="0.6" />
+
+		<buyTicketButtonItemView value="_ui/button-download-red.png" />
+		<buyTicketButtonItemViewOver value="_ui/button-download-red-over.png" />
+		<buyTicketButtonItemViewInTextBox value="true" />
+		<!-- if buyTicketButtonItemViewInTextBox is true, then x,y are relative to text box -->
+		<buyTicketButtonItemViewX value="99%" alt="64%" />
+		<buyTicketButtonItemViewY value="0%" alt="5%" />
+		<buyTicketButtonItemViewReferencePoint value="TopRight" />
+		<buyTicketButtonItemViewWidth value="125" />
+		<buyTicketButtonItemViewHeight value="50" />
+
+		<ChooseEventIcon value="_ui/button-circle-150.png" />
+		<ChooseEventIconOver value="_ui/button-circle-150-over.png" />
+		<ChooseEventIconWidth value="180" />
+		<ChooseEventIconHeight value="180" />
+		<ChooseEventIconX value="200" />
+		<ChooseEventIconY value="90" />
+
+		<XChooseEventIcon value="_ui/button-openbook-gray.png" />
+		<XChooseEventIconOver value="_ui/button-openbook-gray-over.png" />
+		<XChooseEventIconWidth value="125" />
+		<XChooseEventIconHeight value="50" />
+		<XChooseEventIconX value="98%" />
+		<XChooseEventIconY value="25%" />
+
+
+		<itemManifestFilename value="manifest.json" />
+		<itemStatusFilename value="status.json" />
+
+		<showTitleBar value="true" />
+		<showIOSTitleBar value="false" />
+		<titleBarHeight value="60" />
+		<titleBarColor value="80,80,80,100%" />
+		<titleBarFont value="Avenir-Light" />
+		<titleBarFontSize value="24" />
+		<titleBarFontColor value="230,230,230,100%" />
+		<titleBarFontEmbossed value="true" />
+		
+		<titleBarBackgroundImage value="_custom/shelves-titlebar.png" />
+		
+		<titleBarButtonsWidth value="60" />
+
+
+		<missingIcon value="_ui/blank-book-icon.png" />
+		<missingposter value="_ui/poster-missing.png" />
+
+
+		<dateFormat value="%a, %B %d, %Y" alt="%m/%d/%y" alt="%d-%m-%Y" />
+		<timeFormat value="%I:%M %p" />
+
+
+		<eventListTableBackgroundColor value="200,200,200,100%" />
+
+		<showBuyButtonRowView value="true" />
+		<showDownloadButtonRowView value="true" />
+		
+		
+		<!-- APP SETTINGS WINDOW -->
+		
+		<msgSettingsBookstore>You are connected to {bookstore}.</msgSettingsBookstore>
+		<msgSettingsSignin>To download your books from the bookstore, enter your username and password below:</msgSettingsSignin>
+		<msgSettingsChildLock>To lock books which are rated appropriate for 18+ years of age, enter a lock code below:</msgSettingsChildLock>
+
+		<!-- margins are percent of width of screen -->
+		<settingsWindowMargins value="5%, 5%, 5%, 5%" />
+		<settingsInnerMargins value="8%, 8%, 8%, 8%" />
+		<settingsBackgroundColor value="230,230,230,100%" />
+		<settingsTextInputFieldsTop value="15%" />
+
+		<settingsFont value="Avenir-Light" />
+		<settingsFontSize value="18" />
+		<settingsFontColor value="100,100,100,100%" />
+		<settingsTextLineHeight value="24" />
+		<settingsTextSpaceAfter value="24" />
+		<settingsBlockSpacing value="40" />
+		<settingsInfoTextAlignment value="Center" />
+		
+		<settingsTitle value="Settings" />
+		<SettingsTitleFont value="Avenir-Medium" />
+		<SettingsTitleFontSize value="24" />
+		<settingsTitleFontColor value="60,60,60,100%" />
+		
+		<settingsContentY value= "20%" />
+		
+		<!-- we position these text fields from the left of the settings window -->
+		<settingsTextInputFieldXOffset value="8%" />
+		
+		<!-- lock code to prevent children from seeing 18+ rated books -->
+		<lockCodeSize value="4" />
+
+		<settingsButton value="_ui/button-gear-gray.png" />
+		<settingsButtonOver value="_ui/button-gear-gray-over.png" />
+		<settingsButtonReferencePoint value="Center" />	
+		<settingsButtonWidth value="44" />
+		<settingsButtonHeight value="44" />
+		<settingsButtonX value="96%" />
+		<settingsButtonY value="50%" />
+		<settingsButtonLabelXOffset value="0" />
+		<settingsButtonLabelYOffset value="0" />
+		<settingsButtonLabel value="" />
+		<settingsButtonLabelFont value="Avenir-Medium" />
+		<settingsButtonLabelFontSize value="12" />
+		<settingsButtonLabelFontColor value="120,120,120,100%" />
+		<settingsButtonLabelFontOverColor value="120,120,120,100%" />
+
+		<!-- close button -->
+		<settingsCloseButton value="_ui/button-cancel-round.png" />
+		<settingsCloseButtonOver value="_ui/button-cancel-round-over.png" />
+		<settingsCloseButtonWidth value="44" />
+		<settingsCloseButtonHeight value="44" />
+		
+
+
+		<!-- ROW -->
+		
+		<refreshButtonReferencePoint value="Center" />
+		<refreshButton value="_ui/button-update-gray.png" />
+		<refreshButtonOver value="_ui/button-update-gray-over.png" />
+		<refreshButtonReferencePoint value="Center" />	
+		<refreshButtonWidth value="44" />
+		<refreshButtonHeight value="44" />
+		<refreshButtonX value="90%" />
+		<refreshButtonY value="20" />
+		<refreshButtonLabelXOffset value="0" />
+		<refreshButtonLabelYOffset value="0" />
+		<refreshButtonLabel value="" />
+		<refreshButtonLabelFont value="Avenir-Medium" />
+		<refreshButtonLabelFontSize value="12" />
+		<refreshButtonLabelFontColor value="120,120,120,100%" />
+		<refreshButtonLabelFontOverColor value="120,120,120,100%" />
+
+		<sortRowsButtonReferencePoint value="Center" />
+		<sortRowsButton value="_ui/button-gray-80.png" />
+		<sortRowsButtonOver value="_ui/button-gray-80-over.png" />
+		<sortRowsButtonReferencePoint value="Center" />	
+		<sortRowsButtonWidth value="44" />
+		<sortRowsButtonHeight value="44" />
+		<sortRowsButtonX value="76%" />
+		<sortRowsButtonY value="20" />
+		<sortRowsButtonLabelXOffset value="0" />
+		<sortRowsButtonLabelYOffset value="0" />
+		<sortRowsButtonLabel value="Author" />
+		<sortRowsButtonLabelFont value="AvenirNextCondensed-Medium" />
+		<sortRowsButtonLabelFontSize value="13" />
+		<sortRowsButtonLabelFontColor value="250,250,250,100%" />
+		<sortRowsButtonLabelFontOverColor value="120,120,120,100%" />
+		<sortRowsEmboss value="false" />
+
+		<!-- item icon position -->
+		<eventListRowIconX value="0" />
+		<eventListRowIconY value="50%" />
+		<eventListRowIconReferencePoint value="CenterLeft" />
+
+		<rowInfoButton value="_ui/button-info-med.png" />
+		<rowInfoButtonOver value="_ui/button-info-med-over.png" />
+		<rowInfoButtonWidth value="44" />
+		<rowInfoButtonHeight value="44" />
+		<rowInfoButtonX value="98%" />
+		<rowInfoButtonY value="70%" />
+		<rowInfoButtonLabelXOffset value="0" />
+		<rowInfoButtonLabelYOffset value="38" />
+		<rowInfoButtonLabel value="Info" />
+		<rowInfoButtonLabelFont value="Avenir-Medium" />
+		<rowInfoButtonLabelFontSize value="12" />
+		<rowInfoButtonLabelFontColor value="120,120,120,100%" />
+		<rowInfoButtonLabelFontOverColor value="120,120,120,100%" />
+
+		<rowDeleteButton value="_ui/button-delete-x.png" />
+		<rowDeleteButtonOver value="_ui/button-delete-x-over.png" />
+		<rowDeleteButtonWidth value="44" />
+		<rowDeleteButtonHeight value="44" />
+		<rowDeleteButtonX value="90%" />
+		<rowDeleteButtonY value="70%" />
+		<rowDeleteLabelXOffset value="0" />
+		<rowDeleteLabelYOffset value="38" />
+		<rowDeleteLabel value="Archive" />
+		<rowDeleteLabelFont value="Avenir-Medium" />
+		<rowDeleteLabelFontSize value="12" />
+		<rowDeleteLabelFontColor value="120,120,120,100%" />
+		<rowDeleteLabelFontOverColor value="120,120,120,100%" />
+		
+		<buyTicketButtonRowView value="_ui/button-buy.png" />
+		<buyTicketButtonRowViewOver value="_ui/button-buy-over.png" />
+		<buyTicketButtonRowViewInTextBox value="true" />
+		<!-- if buyTicketButtonRowViewInTextBox is true, then x,y are relative to text box -->
+		<buyTicketButtonRowViewX value="98%" alt="98%" />
+		<buyTicketButtonRowViewY value="30%" alt="50%" />
+		<buyTicketButtonRowViewReferencePoint value="CenterRight" />
+		<buyTicketButtonRowViewWidth value="44" />
+		<buyTicketButtonRowViewHeight value="44" />
+
+		<!-- if downloadTicketButtonRowViewInTextBox is true, then x,y are relative to text box -->
+		<!-- small download button on right -->
+		<!--
+		<downloadTicketButtonRowView value="_ui/button-download-cloud-gray.png" />
+		<downloadTicketButtonRowViewOver value="_ui/button-download-cloud-gray-over.png" />
+		<downloadTicketButtonRowViewInTextBox value="true" />
+		<downloadTicketButtonRowViewX value="98%" alt="98%" />
+		<downloadTicketButtonRowViewY value="30%" alt="50%" />
+		<downloadTicketButtonRowViewReferencePoint value="CenterRight" />
+		<downloadTicketButtonRowViewWidth value="44" />
+		<downloadTicketButtonRowViewHeight value="44" />
+		-->
+
+		<!-- download button overlays book icons -->
+		<!--
+		<downloadTicketButtonRowView value="_ui/button-download-cloud-overlay.png" />
+		<downloadTicketButtonRowViewOver value="_ui/button-download-cloud-overlay-over.png" />
+		<downloadTicketButtonRowViewInTextBox value="true" />
+		<!-- if downloadTicketButtonRowViewInTextBox is true, then x,y are relative to text box -->
+		<downloadTicketButtonRowViewX value="0" alt="98%" />
+		<downloadTicketButtonRowViewY value="50%" alt="50%" />
+		<downloadTicketButtonRowViewReferencePoint value="CenterLeft" />
+		<downloadTicketButtonRowViewWidth value="150" />
+		<downloadTicketButtonRowViewHeight value="150" />
+		<downloadTicketButtonRowViewLabel value="" />
+		<downloadTicketButtonRowViewLabelFont value="Avenir-Medium" />
+		<downloadTicketButtonRowViewLabelFontSize value="12" />
+		<downloadTicketButtonRowViewLabelXOffset value="20" />
+		<downloadTicketButtonRowViewLabelYOffset value="70" />
+		<downloadTicketButtonRowViewLabelColor value="120,120,120,100%" />
+		<downloadTicketButtonRowViewLabelOverColor value="120,120,120,100%" />
+		-->
+
+		<downloadSpinnerSheet value="_ui/download-spritesheet.png" />
+		<downloadSpinnerW value="110" />
+		<downloadSpinnerH value="75" />
+		<downloadSpinnerNumframes value="8" />
+		<downloadSpinnerTime value="800" />
+		<downloadSpinnerX value="94" />
+		<downloadSpinnerY value="90" />
+		
+		<updateButtonLabel value="Update" />
+		<updateButtonLabelFont value="AvenirNextCondensed-Medium" />"
+		<updateButtonLabelFontsize value="16" />
+		<updateButtonLabelEmboss value="false" />
+		<updateButtonLabelxOffset value="25"/>)
+		<updateButtonLabelyOffset value="45" />
+		<updateButtonLabelColor value="0,0,0,220" />)
+		<updateButtonLabelOverColor value="250,50,50,220" />)
+
+		
+		<!-- download an update button icon -->
+		
+		<!-- Put the update on top of the book icon, on the left -->
+		<!--
+		<downloadTicketButtonRowViewUpdate value="_ui/button-update-arrows.png" />
+		<downloadTicketButtonRowViewUpdateOver value="_ui/button-update-arrows-over.png" />
+		<downloadTicketButtonRowViewUpdateWidth value="80" />
+		<downloadTicketButtonRowViewUpdateHeight value="96" />
+		<downloadTicketButtonRowViewUpdateX value="98%" />
+		<downloadTicketButtonRowViewUpdateY value="70%" />
+		<downloadTicketButtonRowViewUpdateReferencePoint value="Center" />
+		<downloadTicketButtonRowViewUpdateX value="10.5%" alt="0" />
+		<downloadTicketButtonRowViewUpdateY value="50%" alt="50%" />
+		-->
+
+		<!-- Put the update button on the right as a button -->
+		<downloadTicketButtonRowViewUpdate value="_ui/button-update-green.png" />
+		<downloadTicketButtonRowViewUpdateOver value="_ui/button-update-green-over.png" />
+		<downloadTicketButtonRowViewUpdateWidth value="44" />
+		<downloadTicketButtonRowViewUpdateHeight value="44" />
+		<downloadTicketButtonRowViewUpdateX value="80%" />
+		<downloadTicketButtonRowViewUpdateY value="70%" />
+		<downloadTicketButtonRowViewUpdateLabelXOffset value="0" />
+		<downloadTicketButtonRowViewUpdateLabelYOffset value="38" />
+		<downloadTicketButtonRowViewUpdateLabel value="Update" />
+		<downloadTicketButtonRowViewUpdateLabelFont value="Avenir-Medium" />
+		<downloadTicketButtonRowViewUpdateLabelFontSize value="12" />
+		<downloadTicketButtonRowViewUpdateLabelColor value="120,120,120,100%" />
+		<downloadTicketButtonRowViewUpdateLabelOverColor value="120,120,120,100%" />
+	
+
+
+
+		<XdownloadTicketButtonRowViewUpdateX value="98%" />
+
+
+		<!-- Shelf listing row settings -->
+		<eventListRowCategoryHeight value="36" />
+		<eventListRowCategoryMargins value="10,10,10,18" comment="top,left,bottom,right" />
+		<eventListRowCategoryColor value="220,220,220,100%" />
+		<eventListRowCategoryTextIndent value="0" />
+		<eventListRowCategoryTextAlignH value="Right" />
+		<eventListRowCategoryFont value="AvenirNextCondensed-Medium" />
+		<eventListRowCategoryFontSize value="16" />
+		<eventListRowCategoryFontColor value="100,100,100,100%" />
+		<eventListRowHighlightColor value="250,250,50,50%" />
+
+		<eventListRowLineColor value="200,200,200,100%" />
+
+		<!-- Shelf listing row settings -->
+		<eventListRowMargins value="16,10,24,10" comment="top,left,bottom,right" />
+		<eventListRowHeight value="180" />
+		<!-- keep this 100% white so the download overlay, which is white, won't look weird -->
+		<eventListRowColor value="255,255,255,100%" />
+		<eventListRowHighlightColor value="255,255,255,100%" />
+		<eventListRowTextIndent value="200" />
+		<eventListRowTemplate>
+			### style, eventListRowTitle
+			{title}
+			### style, eventListRowAuthor
+			{author}
+			### style, eventListRowBody
+			{shortDescription}
+		</eventListRowTemplate>
+		<eventListRowTextFont value="Baskerville-Italic" />
+		<eventListRowTextFontSize value="16" />
+		<eventListRowTextLineHeight value="18" />
+		<eventListRowTextColor value="0,0,0,100%" />
+		<eventListRowTextWidth value="50%" />
+		<eventListRowTextAlignment value="left" />
+		<eventListRowTextVAlignment value="top" />
+		<eventListRowTextFontAlpha value="100%" />
+		<evenListRowBackground value="" />
+		<evenListRowBackgroundHighlighted value="" />
+
+
+
+		<!-- ROW DETAIL : PAGE -->
+
+		<eventPageBackButtonFont value="Avenir-Medium" />
+		<eventPageBackButtonFontSize value="16" />
+
+		<eventPageBackground value="255,255,255,100%" />
+		<eventPageTitleBarColor value="80,80,80,100%" />
+		
+		<eventPageBackButtonX value="95%" />
+
+		<eventPageTemplate>
+			### style, eventPageTitle
+			{title}
+			### style, eventPageAuthor
+				{author}
+			### style, eventPageBody
+				{description}
+		</eventPageTemplate>
+
+		<eventPageTemplateNoHeader>
+			### style, eventPageBody
+				{description}
+		</eventPageTemplateNoHeader>
+
+		<eventPageTextX value="0" />
+		<eventPageTextY value="0" comment="distance from top or bottom of content area" />
+		<eventPageTextValign value="bottom" alt="center" alt="top" />
+		<eventPageTextMargins value="50,50,30,500" comment="top,left,bottom,right" />
+
+		<eventPageTextFont value="Baskerville" />
+		<eventPageTextFontSize value="16" />
+		<eventPageTextLineHeight value="18" />
+		<eventPageTextColor value="0,0,0,100%" />
+		<eventPageTextWidth value="100%" />
+		<eventPageTextAlignment value="left" />
+		<eventPageTextFontAlpha value="100%" />
+
+		<eventPageTextBackgroundPadding value="20" />
+		<eventPageTextBackgroundColor value="250,250,250,50%" />
+		<eventPageTextBackgroundCorner value="6" comment="0 for rect" />
+
+		<eventPageBuyButtonX value="10" />
+		<eventPageBuyButtonY value="10" />
+
+		<msgDownloading>Downloading Event.</msgDownloading>
+
+	</class>
+
+
+	<class value="slideview">
+
+		<surroundingPageCount value="2" />
+
+		<currentStateFilename value="currentstate_slideview" comment="Do not incude the suffix, e.g. .json!" />
+
+		<startChapter value="1" />
+		<startPage value="1" />
+		<fadeBookTime value="500" />
+
+		<orientations value="landscapeLeft,landscapeRight" />
+		<msgInvalidOrientation>Please turn your device to see the book.</msgInvalidOrientation>
+		<invalidOrientationBackgroundColor value="0,50,50,255" />
+		<invalidOrientationFont value="Avenir-Medium" />
+		<invalidOrientationSize value="32" />
+		<invalidOrientationFontColor value="240,240,240,255" />
+		
+		<scrollingFieldIndicatorActive value="true" />
+		<scrollingFieldIndicatorUseSingleIcon value="true" />
+		<scrollingFieldIndicatorIcon value="_ui/scrolling-indicator-1024.png" />
+		<scrollingFieldIndicatorIconUp value="_ui/scrollingfieldindicatoricon-up.png" />
+		<scrollingFieldIndicatorIconDown value="_ui/scrollingfieldindicatoricon-down.png" />
+		<pageItemsPrefadeOnOpeningTime value="500" />
+		<pageItemsFadeInOpeningTime value="500" />
+		<pageItemsFadeOutOpeningTime value="300" />
+
+		<showCaptionOnStart value="false" />
+		<showOverlayOnStart value="false" />
+		
+		<showToolbar value="true" />
+
+		<developingMarginsRectStroke value="200,250,250" />
+
+		<showPageNumbers value="false" />
+		<pageNumberX value="right" />
+		<pageNumberY value="top" />
+		<pageAbsolute value="false" />
+		<pageNumberFont value="Avenir-Medium" />
+		<pageNumberSize value="16" />
+		<pageNumberColor value="0,0,0,80%" />
+		<pageNumberBackgroundImage value="" alt="_ui/blue-disk-44.png" />
+		<pageNumberBackgroundShape value="circle" alt="rectangle" />
+		<pageNumberBackgroundDimensions value="24" alt="50,70" />
+		<pageNumberBackgroundColor value="250,250,250,80%" />
+		<pageNumberStyle value="normal" alt="embossed" />
+		<pageNumberXAdjust value="0" />
+		<pageNumberYAdjust value="-2" />
+
+		<minWordWrapWordLength value="1" />
+
+		<layerIndex value="background, pagebackground, image, shapes, pictures, sprites, plugins, textblock, grids, animation, links, buttons, panoramas, caption, pagenumber, overlay, lockcover, chapterlockcover, frontstage" />
+
+		<pageTurnOnTap value="true" />
+		<pageTurnTapAreaWidth value="5%" />
+
+		<pageWidth value="100%" />
+		<pageHeight value="100%" />
+
+		<pictureDimBackground value="true" />
+		<pageDimCoverColor value="55,55,55" />
+		<pageDimCoverAlpha value="75%" />
+		<pageDimCoverTime value="300" />
+
+		<fadePageTime value="300" />
+		<fadePageTimeSlow value="1000" />
+		<delayBeforeShowingActivityIndicator value="100" />
+		<fadeCaptionTime value="500" />
+		<fadeToolTime value="300" />
+		<fadeSoundTime value="500" />
+		<safeDelay value="50" />
+		<zoomTransitionTime value="500" />
+
+		<autoGoNextPageTime value="7000"  comment="Delay between pages in a slideshow" />
+		<audioFadeOutTime value="1000" />
+		<stopAudioWhenLeavingPage value="false" />
+
+		<autoFadeToolsTime value="7000" />
+
+		<endOfBookMsg>End of Book</endOfBookMsg>
+		<resumingAtPageMsg>Return to saved page</resumingAtPageMsg>
+		<noCaptionOnPageMsg>No caption for this page.</noCaptionOnPageMsg>
+		<noOverlayOnPageMsg>No overlay for this page.</noOverlayOnPageMsg>
+		<startShowMsg>Starting Slideshow.</startShowMsg>
+		<slideshowStoppedText>Slideshow Stopped.</slideshowStoppedText>
+		<slideshowFinishedText>Show Finished.</slideshowFinishedText>
+		<noAudioMsg>No Audio to Play.</noAudioMsg>
+		<lockTappedMsg>This item is locked.</lockTappedMsg>
+		<noPhotoToUploadFacebookMsg>No photo uploaded.</noPhotoToUploadFacebookMsg>
+		<pageRequiresInternetMsg>Page Requires an Internet Connection.</pageRequiresInternetMsg>
+		<enterPasswordMsg>Enter Password</enterPasswordMsg>
+		<msgMuteOff>Autoplay Sound is On.</msgMuteOff>
+		<msgMuteOn>Autoplay Sounds is Off.</msgMuteOn>
+		<msgNoBackHistory>No more back pages.</msgNoBackHistory>
+
+		<chapterLockedAlpha value="30%" />
+		<chapterLockedCoverColor value="230,230,250,50%" />
+		<pageLockedAlpha value="30%" />
+		<pageLockedCoverColor value="250,200,250,50%" />
+
+		<pageLockedCoverImage value="_ui/locked-cover-image.png" />
+		<pageLockedCoverImageAlpha value="50%" />
+
+		<chapterLockedCoverImage value="_ui/locked-chapter-cover-image.png" />
+		<chapterLockedCoverImageAlpha value="50%" />
+
+		<pageLockedButton value="_ui/locked.png" />
+		<pageLockedButtonOver value="_ui/locked-over.png" />
+		<pageUnlockedButton value="_ui/unlocked.png" />
+
+		<pageLockedIcon value="_ui/locked-icon.png" />
+		<pageLockGraphicX value="50%" />
+		<pageLockGraphicY value="70%" />
+
+		<pageLockcoverFadeSpeed value="300" />
+
+		<mapURL value="http://maps.google.com/maps?spn=0.001,0.001&t=k&hl=en&q=" />
+		<mapX value="60" />
+		<mapY value="60" />
+		<mapH value="" />
+		<mapW value="" />
+
+		<popupColor value="white" />
+		<popupBkgdAlpha value="90%" />
+		<popupTime value="300" />
+
+		<webPagePopupColor value="white" />
+		<webPagePopupBkgdAlpha value="90%" />
+		<webPagePopupTime value="300" />
+
+		<bookBackgroundColorR value="0" />
+		<bookBackgroundColorG value="0" />
+		<bookBackgroundColorB value="0" />
+		<bookBackgroundAlpha value="100%" />
+
+		<chapterBackgroundColorR value="240" />
+		<chapterBackgroundColorG value="240" />
+		<chapterBackgroundColorB value="240" />
+		<chapterBackgroundAlpha value="100%" />
+
+		<pageBackgroundColorR value="250" />
+		<pageBackgroundColorG value="250" />
+		<pageBackgroundColorB value="250" />
+		<pageBackgroundAlpha value="100%" />
+
+		<pageMarkNumbering value="book" />
+
+		<pageBackgroundMarkColorR value="120" />
+		<pageBackgroundMarkColorG value="120" />
+		<pageBackgroundMarkColorB value="120" />
+		<pageBackgroundMarkAlpha value="15%" />
+		<pageBackgroundMarkFont value="Avenir-Black" />
+		<pageBackgroundMarkFontSize value="180" />
+
+		<pageOutsideMargin value="0" comment="Margin around page, shows chapter background color." />
+
+		<pageStrokeWidth value="1" />
+
+		<pageStrokeColorR value="250" />
+		<pageStrokeColorG value="250" />
+		<pageStrokeColorB value="250" />
+		<pageStrokeAlpha value="100%" />
+
+		<imagefileAlign value="center" />
+		<imagefileVAlign value="center" />
+
+		<imagefileTopMargin value="0" />
+		<imagefileLeftMargin value="0" />
+		<imagefileBottomMargin value="0" />
+		<imagefileRightMargin value="0" />
+
+
+		<pictureCornerTL value="_ui/picture-corner-tl.png" />
+		<pictureCornerTR value="_ui/picture-corner-tr.png" />
+		<pictureCornerBL value="_ui/picture-corner-bl.png" />
+		<pictureCornerBR value="_ui/picture-corner-br.png" />
+
+		<pictureCornerOffsetX value="0" />
+		<pictureCornerOffsetY value="2" />
+
+		<pictureCornerTLoffsetX value="0" />
+		<pictureCornerTLoffsetY value="0" />
+		<pictureCornerTRoffsetX value="12" />
+		<pictureCornerTRoffsetY value="0" />
+		<pictureCornerBLoffsetX value="0" />
+		<pictureCornerBLoffsetY value="12" />
+		<pictureCornerBRoffsetX value="12" />
+		<pictureCornerBRoffsetY value="12" />
+
+		<captionShowFacebookButton value="true" />
+		<captionShowTwitterButton value="true" />
+
+		<captionStripDoubleReturns value="true" />
+		<captionCR>
+### blank,12
+</captionCR>
+
+		<captionFormat>{caption}
+		### set, Baskerville-Italic
+{date}  {place}</captionFormat>
+
+		<captionPlaceSeparator value=", " />
+		<captionPlaceFormat>{sublocation} {city}{citySeparator}{state}{stateSeparator}{country}</captionPlaceFormat>
+
+
+		<captionFooterAlignment value="center" />
+
+		<captionFooterText>
+		### set, ,,,,,,,25%
+		Camera: {aperture} {shutterSpeed} at {isoSpeedRating}, {focalLength} lens on {cameraModel}
+		### set, ,,,,,,,50%
+		( {pageNumberInChapter} of {pagecountInChapter} / {pageNumberInBook} of {pagecountInBook} )
+		</captionFooterText>
+
+		<captionH value="20%" />
+		<captionW value="100%" />
+		<captionVAlign value="bottom" />
+		<captionDateFormat value="%m/%d/%Y" />
+
+		<captionTitleHeight value="150%" />
+		<captionTitleFont value="Baskerville-Bold" />
+		<captionTitleFontSize value="16" />
+		<captionTitleLineHeight value="24" />
+		<captionTitleBlockAlignment value="left" />
+
+		<captionFont value="Baskerville" />
+		<captionFontSize value="16" />
+		<captionLineHeight value="22" />
+		<captionAlignment value="left" />
+
+		<captionPagenumFontSize value="14" />
+		<captionPagenumFont value="Baskerville-Italic" />
+
+		<captionTextColorR value="10" />
+		<captionTextColorG value="10" />
+		<captionTextColorB value="10" />
+		<captionTextAlpha value="100%" />
+
+		<captionTextShadowColorR value="220" />
+		<captionTextShadowColorG value="220" />
+		<captionTextShadowColorB value="220" />
+		<captionTextShadowAlpha value="0" />
+
+		<captionTextTopMargin value="15" />
+		<captionTextLeftMargin value="130" />
+		<captionTextBottomMargin value="5" />
+		<captionTextRightMargin value="110" />
+
+		<captionFBbuttonX value="20" />
+		<captionFBbuttonY value="20" />
+		<captionFBbuttonAlignment value="left" />
+
+		<captionTwitterbuttonX value="64" />
+		<captionTwitterbuttonY value="20" />
+		<captionTwitterbuttonAlignment value="left" />
+
+		<captionAudioplaybuttonX value="70" />
+		<captionAudioplaybuttonY value="20" />
+		<captionAudioplaybuttonAlignment value="right" />
+
+		<captionMapbuttonX value="20" />
+		<captionMapbuttonY value="70" />
+		<captionMapbuttonAlignment value="right" />
+
+		<captionVideobuttonX value="70" />
+		<captionVideobuttonY value="70" />
+		<captionVideobuttonAlignment value="right" />
+
+		<captionAudiopausebuttonX value="70" />
+		<captionAudiopausebuttonY value="20" />
+		<captionAudiopausebuttonAlignment value="right" />
+
+		<captionOverlaybuttonX value="20" />
+		<captionOverlaybuttonY value="20" />
+		<captionOverlaybuttonAlignment value="right" />
+
+		<captionBkgdTopMargin value="0" />
+		<captionBkgdLeftMargin value="20" />
+		<captionBkgdBottomMargin value="10" />
+		<captionBkgdRightMargin value="20" />
+
+		<captionTextBkgdColorR value="255" />
+		<captionTextBkgdColorG value="255" />
+		<captionTextBkgdColorB value="255" />
+		<captionBkgdAlpha value="90%" />
+
+		<captionBkgdStrokeWidth value="1" />
+
+		<captionBkgdStrokeColorR value="0" />
+		<captionBkgdStrokeColorG value="0" />
+		<captionBkgdStrokeColorB value="0" />
+		<captionBkgdStrokeAlpha value="90%" />
+
+
+		<textblockTitleHeight value="36" />
+		<textblockTitleFont value="Baskerville-Bold" />
+		<textblockTitleFontSize value="24" />
+		<textblockTitleLineHeight value="120%" />
+
+		<textblockTitleBlockAlignment value="center" />
+
+		<textblockTitleColorR value="10" />
+		<textblockTitleColorG value="10" />
+		<textblockTitleColorB value="10" />
+		<textblockTitleAlpha value="100%" />
+
+		<textblockAlignment value="left" />
+		<textblockFooterAlignment value="right" />
+		<textblockFooterHeight value="30" />
+
+		<textblockFooterText value="" />
+
+		<textblockTextH value="100%" />
+		<textblockTextW value="100%" />
+		<textblockAlign value="left" />
+		<textblockVAlign value="top" />
+
+		<textblockFontSize value="20" />
+		<textblockFont value="Baskerville" />
+		<textblockLineHeight value="120%" />
+
+		<textblockPagenumFontSize value="14" />
+		<textblockPagenumFont value="Baskerville-Italic" />
+
+		<textblockTextColorR value="10" />
+		<textblockTextColorG value="10" />
+		<textblockTextColorB value="10" />
+		<textblockTextAlpha value="100%" />
+
+		<textblockAddShadow value="false" />
+		<textblockTextShadowColorR value="220" />
+		<textblockTextShadowColorG value="220" />
+		<textblockTextShadowColorB value="220" />
+		<textblockTextShadowAlpha value="0" />
+
+		<textblockTextTopMargin value="10" />
+		<textblockTextLeftMargin value="10" />
+		<textblockTextBottomMargin value="10" />
+		<textblockTextRightMargin value="10" />
+
+		<textblockBkgdTopMargin value="50" />
+		<textblockBkgdLeftMargin value="50" />
+		<textblockBkgdBottomMargin value="70" />
+		<textblockBkgdRightMargin value="50" />
+
+		<textblockTextBkgdColorR value="255" />
+		<textblockTextBkgdColorG value="255" />
+		<textblockTextBkgdColorB value="255" />
+		<textblockBkgdAlpha value="0%" />
+
+		<textblockBkgdStrokeWidth value="0" />
+
+		<textblockBkgdStrokeColorR value="128" />
+		<textblockBkgdStrokeColorG value="60" />
+		<textblockBkgdStrokeColorB value="0" />
+		<textblockBkgdStrokeAlpha value="100%" />
+
+
+		<linkTextSize value="14" />
+		<linkTextColor value="150,150,30,255" />
+		<linkTextOverColor value="255,0,0,255" />
+		<linkBackgroundPadding value="6" />
+
+		<buttonTextSize value="12" />
+		<buttonEmboss value="false" />
+		<buttonFont value="Thonburi" />
+		<buttonTextColor value="70,90,164,255" />
+		<buttonTextOverColor value="102,153,255,255" />
+
+
+		<overlayAlpha value="1.0" />
+		<overlayImageAlpha value="1.0" />
+		<overlayY value="center" />
+		<overlayShadow value="false" />
+		<overlayShadowThickness value="17" />
+		<overlayShadowAlpha value=".25" />
+
+		<overlayFilename value="_ui/overlay-blank.png" />
+
+		<overlayFooterText>{pageNumberInChapter} of {pagecountInChapter}</overlayFooterText>
+
+		<overlayAddShadow value="false" />
+
+		<overlayTopPadding value="20" />
+		<overlayLeftPadding value="40" />
+		<overlayBottomPadding value="20" />
+		<overlayRightPadding value="40" />
+
+		<overlayTitleHeight value="50" />
+		<overlayTitleFont value="Baskerville-Italic" />
+		<overlayTitleFontSize value="16" />
+		<overlayTitleBlockAlignment value="left" />
+
+		<overlayTitleColorR value="10" />
+		<overlayTitleColorG value="10" />
+		<overlayTitleColorB value="10" />
+		<overlayTitleAlpha value="90%" />
+
+		<overlayTextH value="85%" />
+		<overlayTextW value="85%" />
+		<overlayTextVAlign value="top" />
+		<overlayAlignment value="left" />
+
+		<overlayFontSize value="16" />
+		<overlayFont value="Baskerville" />
+		<overlayLineHeight value="20" />
+		<overlayPagenumFontSize value="11" />
+		<overlayPagenumFont value="Baskerville-Italic" />
+
+		<overlayTextColorR value="10" />
+		<overlayTextColorG value="10" />
+		<overlayTextColorB value="10" />
+		<overlayTextAlpha value="100%" />
+
+		<overlayTextShadowColorR value="220" />
+		<overlayTextShadowColorG value="220" />
+		<overlayTextShadowColorB value="220" />
+		<overlayTextShadowAlpha value="0" />
+
+		<overlayTextTopMargin value="20" />
+		<overlayTextLeftMargin value="60" />
+		<overlayTextBottomMargin value="0" />
+		<overlayTextRightMargin value="60" />
+
+		<overlayTextBkgdTopMargin value="0" />
+		<overlayTextBkgdLeftMargin value="50" />
+		<overlayTextBkgdBottomMargin value="50" />
+		<overlayTextBkgdRightMargin value="50" />
+
+		<overlayBkgdColorR value="255" />
+		<overlayBkgdColorG value="255" />
+		<overlayBkgdColorB value="255" />
+		<overlayBkgdAlpha value="0" />
+
+		<overlayBkgdStrokeWidth value="0" />
+
+		<overlayBkgdStrokeColorR value="0" />
+		<overlayBkgdStrokeColorG value="250" />
+		<overlayBkgdStrokeColorB value="0" />
+		<overlayBkgdStrokeAlpha value="90%" />
+
+		<overlayFooterAlignment value="center" />
+
+		<overlayHiddenY value="-740" />
+
+
+		<gridMaxCount value="3" />
+		<gridDirection value="rows" alt="columns" />
+		<gridPadding value="60" />
+		<gridItemWidth value="250" />
+		<gridItemHeight value="250" />
+
+		<gridShowItemBackground value="true" />
+		<gridItemBackgroundColor value="250,250,250,100%" />
+		<gridItemBackgroundCorner value="10" />
+		<gridItemBackgroundPadding value="24" />
+
+		<gridBackgroundColor value="255,255,255,0%" />
+
+
+		<gridTextObjectFont value="AmericanTypewriter-Condensed" />
+		<gridTextObjectFontColor value="0,0,0,100%" />
+		<gridTextObjectFontSize value="16" />
+		<gridTextObjectLineHeight value="18" />
+		<gridTextObjectTextWidth value="100" />
+		<gridTextObjectAlignment value="left" />
+		<gridTextObjectTextShadowAlpha value="0" />
+		<gridTextObjectBackgroundcolor value="250,250,0,80%" />
+		<gridTextObjectMargin value="10" />
+
+
+		<panoramaActivateTime value="500" />
+		<panoramaCloseButtonX value="93%" />
+		<panoramaCloseButtonY value="4%" />
+		<panoramaBackgroundColor value="0,0,0,100%" />
+		<panoramaTitleFont value="Baskerville-Bold" />
+		<panoramaTitleAlignment value="left" />
+		<panoramaTitleFontSize value="32" />
+		<panoramaTitleFontColor value="0,0,0" />
+		<panoramaTitleFontAlpha value="100%" />
+		<panoramaTitleLineHeight value="140%" />
+		<panoramaTitleWidth value="80%" />
+		<panoramaNavtype value="" alt="accelerometer" alt2="gyrotilt" alt3="gyrovr" />
+		<panoramaTouchOnly value="false" />
+		<closeButtonDefault value="_ui/button-cancel-round.png" />
+		<closeButtonOver value="_ui/button-cancel-round-over.png" />
+
+		<panoramaCloseDefault value="_ui/button-cancel-round.png" />
+		<panoramaCloseOver value="_ui/button-cancel-round-over.png" />
+
+
+		<pictureShadow value="true" />
+		<pictureShadowAlpha value=".25" />
+		<pictureShadowThickness value="20" />
+
+
+		<tocTitleFont value="Baskerville-Bold" />
+		<tocTitleAlignment value="left" />
+		<tocTitleFontSize value="32" />
+		<tocTitleFontColor value="0,0,0" />
+		<tocTitleFontAlpha value="100%" />
+		<tocTitleTop value="25%" />
+		<tocTitleHeight value="50" />
+
+		<tocItemFont value="Baskerville" />
+		<tocItemFontSize value="24" />
+		<tocItemFontColor value="10,10,10,255" />
+		<tocItemFontAlpha value="100%" />
+		<tocItemLineHeight value="140%" />
+		<tocItemlistTop value="25%" />
+		<tocItemFontOverColor value="50,50,50,100%" />
+
+		<tocLockedItemText value=" [Locked]" />
+
+		<inventoryShowDescriptionsByDefault value="false" />
+
+		<inventoryItemTitleFont value="HelveticaNeue-Bold" />
+		<inventoryItemTitleFontSize value="18" />
+		<inventoryItemTitleFontColor value="10,10,10" />
+		<inventoryItemTitleFontAlpha value="100%" />
+
+		<inventoryItemDescriptionFont value="HelveticaNeue" />
+		<inventoryItemDescriptionFontSize value="12" />
+		<inventoryItemDescriptionFontColor value="10,10,10" />
+		<inventoryItemDescriptionFontAlpha value="100%" />
+
+		<inventoryItemLineHeight value="120%" />
+		<inventoryItemTextWidth value="50%" />
+		<inventoryItemPadding value="0%" />
+		<inventoryItemTextAlignment value="center" />
+		<inventoryItemDescriptionTemplate>{description}</inventoryItemDescriptionTemplate>
+
+		<emptyPlaceHolder value="{empty}" />
+		
+		<invalidOrientationImage value="_ui/turn-device-graphic.png" />
+
+		<bigGoShelvesButton value="_ui/button-library.png" />
+		<bigGoShelvesButtonOver value="_ui/button-library-over.png" />
+		<bigGoShelvesButtonWidth value="44" />
+		<bigGoShelvesButtonHeight value="44" />
+
+		<bigGoShelvesButtonLabel value="Return to Library" />
+		<bigGoShelvesButtonLabelFont value = "Avenir-Light" />
+		<bigGoShelvesButtonLabelFontSize value = "16" />
+		<bigGoShelvesButtonLabelXOffset value="0" />
+		<bigGoShelvesButtonLabelYOffset value="40" />
+		<bigGoShelvesButtonLabelColor value="250,250,250,255" />
+		<bigGoShelvesButtonLabelOverColor value="180,180,180,100%" />
+
+	</class>
+
+	<class value="navbar">
+		<showOnStart value="false" />
+
+		<labelType value="label" />
+		<navbarType value="slider" alt="timeline" />
+
+		<fadeToolTime value="300" />
+
+		<showSubtitle value="true" />
+		<subtitleTemplate>{chapterIndex}{chapterTitle}</subtitleTemplate>
+		<subtitleFont>Avenir-Medium</subtitleFont>
+		<subtitleFontSize value="14" />
+		<subtitleFontColor value="120,120,120,100%" />
+		<subtitlePosition alt="left" value="center" alt="right" />
+		<subtitleYOffset value="-5" />
+		<subtitleIndexSeparator value=" : " />
+
+		<showLibraryButton value="true" />
+
+		<showSlideshowButton value="true" />
+
+		<showMapButton value="true" />
+		<mapButtonOnRight value="false" />
+		<mapPageID value="map" />
+
+		<padding value="20" />
+
+		<frameImage value="_ui/navbar.png" />
+		<frameImagePadding value="20" />
+
+		<autoFadeTime value="0" />
+
+		<x value="0" />
+		<y value="0" />
+		<width value="94%" />
+		<height value="80" />
+		<cornerRadius value="8" />
+		<alpha value="100%" />
+		<frameAlpha value="85%" />
+		<useGradient value="false" />
+		<gradient value="255,255,255,178,178,178,down" />
+
+		<picker value="slider" />
+
+		<pickerBackgroundColor value="250,250,250,0" />
+
+		<pickerButtonType value="image" />
+
+		<pickerButton value="_ui/slider-thumb.png" />
+		<pickerButtonOver value="_ui/slider-thumb-over.png" />
+
+		<pickerButtonWidth value="3" />
+		<pickerButtonHeight value="3" />
+		<pickerButtonShape value="circle" alt="rect" />
+
+		<pickerPadding value="20" />
+		<pickerHeight value="10" />
+		<pickerTouchHeight value="30" />
+		<pickerCornerRadius value="3" />
+		<pickerColorR value="240" />
+		<pickerColorG value="240" />
+		<pickerColorB value="240" />
+		<pickerBackgroundAlpha value="100%" />
+		<pickerStrokeWidth value="1" />
+		<pickerStrokeColorR value="220" />
+		<pickerStrokeColorG value="220" />
+		<pickerStrokeColorB value="220" />
+		<pickerStrokeAlpha value="100%" />
+
+		<pickerShowLabels value="true" />
+
+		<pickerLabelGroupBy value="year" alt1="year" alt2="month" alt3="day" alt4="text"/>
+		<pickerLabelColorR value="40" />
+		<pickerLabelColorG value="40" />
+		<pickerLabelColorB value="40" />
+		<pickerLabelAlpha value="100%" />
+		<pickerLabelFont value="AvenirNextCondensed-Regular" />
+		<pickerLabelFontSize value="10" />
+		<pickerLabelFontRotation value="0" />
+		<pickerLabelFontCondense value="1" />
+		<pickerLabelLineLength value="20" />
+		<pickerLabelLineColor value="220,220,220" />
+		<pickerLabelDateFormat value="%m/%d/%Y" note="beginning space allows zero-padding" />
+
+		<pickerGroupDates value="true" />
+
+		<pickerGroupOverColor value="10,10,10,20%" />
+		<xpickerHighlighting value="group" alt="toCurrentGroup, toPage" />
+		<xpickerHighlighting value="toGroup" alt="toCurrentGroup, toPage" />
+		<pickerHighlighting value="toPage" alt="toCurrentGroup, toPage" />
+
+
+		<pickerButtonAlpha value="70%" />
+		<pickerButtonColor value="10,10,10" />
+
+		<pickerButtonOverColor value="10,10,10" />
+		<pickerButtonOverAlpha value="90%" />
+
+		<pickerPageReferenceDisplayFont value="Avenir-Black" />
+		<pickerPageReferenceDisplayFontSize value="120" />
+		<pageReferenceDisplayColor value="0,0,0,80%" />
+		<pageReferenceFrameDisplayColor value="250,250,250,80%" />
+		<pageReferenceFrameHeightPercent value="100%" />
+		<pageReferenceFrameWidthPercent value="200%" />
+		<pageReferenceFrameYOffsetPercent value="20%" />
+
+		<hAlignment value="center" />
+		<vAlignment value="bottom" />
+
+		<marginTop value="0" />
+		<marginBottom value="20" />
+		<marginLeft value="0" />
+		<marginRight value="0" />
+
+
+		<backgroundColorR value="254" />
+		<backgroundColorG value="254" />
+		<backgroundColorB value="254" />
+		<backgroundAlpha value="100%" />
+
+		<strokeWidth value="0" />
+
+		<strokeColorR value="30" />
+		<strokeColorG value="30" />
+		<strokeColorB value="30" />
+		<strokeAlpha value="100%" />
+
+		<TextColorR value="30" />
+		<TextColorG value="30" />
+		<TextColorB value="30" />
+
+		<icon value="_ui/navPageBlack.png" />
+		<iconOver value="_ui/navPageBlackOver.png" />
+		<iconWidth value="24" />
+		<iconHeight value="12" />
+
+		<iconLibraryText value="" />
+		<iconLibrary value="_ui/button-library.png" />
+		<iconLibraryOver value="_ui/button-library-over.png" />
+		<iconLibraryWidth value="73" />
+		<iconLibraryHeight value="26" />
+
+		<iconTocText value="" />
+		<iconTOC value="_ui/button-contents.png" />
+		<iconTOCOver value="_ui/button-contents-over.png" />
+		<iconTOCWidth value="73" />
+		<iconTOCHeight value="26" />
+
+		<iconTocInChapterText value="" />
+		<iconTOCInChapter value="_ui/button-contents-in-chapter.png" />
+		<iconTOCInChapterOver value="_ui/button-contents-in-chapter-over.png" />
+		<iconTOCInChapterWidth value="73" />
+		<iconTOCInChapterHeight value="26" />
+
+		<iconChapterTocText value="" />
+		<iconChapterTOC value="_ui/button-local-toc.png" />
+		<iconChapterTOCOver value="_ui/button-local-toc.png" />
+		<iconChapterTOCWidth value="73" />
+		<iconChapterTOCHeight value="26" />
+
+		<iconMapText value="" />
+		<iconMap value="_ui/button-map.png" />
+		<iconMapOver value="_ui/button-map-over.png" />
+		<iconMapWidth value="73" />
+		<iconMapHeight value="26" />
+
+		<iconPlayText value="" />
+		<iconPlay value="_ui/button-play.png" />
+		<iconPlayOver value="_ui/button-play-over.png" />
+		<iconPlayWidth value="73" />
+		<iconPlayHeight value="26" />
+
+		<iconAudioPlayText value="" />
+		<iconAudioPlay value="_ui/button-audioplay.png" />
+		<iconAudioPlayOver value="_ui/button-audioplay-over.png" />
+		<iconAudioPlayWidth value="73" />
+		<iconAudioPlayHeight value="26" />
+
+		<iconAudioPausedText value="" />
+		<iconAudioPaused value="_ui/button-audioresume.png" />
+		<iconAudioPausedOver value="_ui/button-audioresume-over.png" />
+		<iconAudioPausedWidth value="73" />
+		<iconAudioPausedHeight value="26" />
+
+		<iconPrevText value="" />
+		<iconPrev value="_ui/button-prev.png" />
+		<iconPrevOver value="_ui/button-prev-over.png" />
+		<iconPrevWidth value="73" />
+		<iconPrevHeight value="26" />
+
+		<iconNextText value="" />
+		<iconNext value="_ui/button-next.png" />
+		<iconNextOver value="_ui/button-next-over.png" />
+		<iconNextWidth value="73" />
+		<iconNextHeight value="26" />
+		
+		<noShadow value="false" />
+		<shadowExtraSize value="34" />
+		<shadowAlpha value="20%" />
+	</class>
+
+	<class value="toolbar">
+		<showOnStart value="false" />
+		<alpha value="94%" />
+
+		<hAlignment value="center" />
+		<vAlignment value="top" />
+		
+		<marginTop value="50" />
+		<marginBottom value="0" />
+		<marginLeft value="0" />
+		<marginRight value="0" />
+
+
+		<fadeToolTime value="300" />
+		<autoFadeTime value="0" />
+
+		<frameImage value="_ui/toolbar.png" />
+		<frameImagePadding value="20" />
+
+		<x value="0" />
+		<y value="0" />
+		<width value="100%" />
+		<height value="60" />
+		<cornerRadius value="8" />
+		<alpha value="100%" />
+		<frameAlpha value="85%" />
+		<useGradient value="false" />
+		<gradient value="255,255,255,178,178,178,down" />
+
+		<padding value="20" />
+
+		<backgroundColorR value="250" />
+		<backgroundColorG value="250" />
+		<backgroundColorB value="255" />
+		<backgroundAlpha value="85%" />
+
+		<strokeWidth value="0" />
+
+		<strokeColorR value="30" />
+		<strokeColorG value="30" />
+		<strokeColorB value="30" />
+		<strokeAlpha value="100%" />
+
+		<TextColorR value="30" />
+		<TextColorG value="30" />
+		<TextColorB value="30" />
+
+		<showLibraryButton value="false" />
+		<libraryButtonText value="Library" />
+		<libraryButton value="_ui/button-contents-in-chapter.png" />
+		<libraryButtonOver value="_ui/button-contents-in-chapter-over.png" />
+		<libraryButtonWidth value="73" />
+		<libraryButtonHeight value="26" />
+
+		<showBackButton value="true" />
+		<backButtonText value="Back" />
+		<backButton value="_ui/button-back-blue.png" />
+		<backButtonOver value="_ui/button-back-blue-over.png" />
+		<backButtonWidth value="44" />
+		<backButtonHeight value="44" />
+
+		<shadowExtraSize value="34" />
+		<shadowAlpha value="20%" />
+	</class>
+
+	<class value="facebook">
+		<appId value="202060669942125" />
+		<apiKey value="cabdb8ec054714c9dd3f9bc5ff5f33c1" />
+		<action value="dialog" alt="auto" />
+		<postPictureMethod value="post" alt="upload" />
+		<picturesBaseURL value="http://www.mimetic.com/ebookimages/facebook_images/mimeticbooks/" />
+		<name>{booktitle} by {bookauthor}</name>
+		<subtitle>{title}</subtitle>
+		<caption>See the app in the iTunes App Store.</caption>
+	<captionlink>https://itunes.apple.com/us/app/mimetic-books/id643357656?ls=1&mt=8</captionlink>
+	<link>https://itunes.apple.com/us/app/mimetic-books/id643357656?ls=1&mt=8</link>
+
+		<descriptionPicturePage>
+I like page {pagenumber} of chapter {chapternumber}!
+		</descriptionPicturePage>
+
+		<uploadPictureDescription>
+I like this picture in {booktitle}.
+{title} : {caption}.
+You can get the app here: {link}
+		</uploadPictureDescription>
+
+		<descriptionNoPicture>
+		I like page {pagenumber} of chapter {chapternumber}!
+		</descriptionNoPicture>
+		<footer>Facebook Page</footer>
+	<footerlink>https://itunes.apple.com/us/app/mimetic-books/id643357656?ls=1&mt=8</footerlink>
+		<postPostPhotoToFacebookMsg>Photo posted to Facebook.</postPostPhotoToFacebookMsg>
+		<postUploadPhotoToFacebookMsg>Photo uploaded to Facebook.</postUploadPhotoToFacebookMsg>
+
+		<facebookLoginMsg>Connecting to Facebook.</facebookLoginMsg>
+		<facebookLogoutMsg>Logged out of Facebook.</facebookLogoutMsg>
+	</class>
+
+	<class value="twitter">
+		<consumerkey value="OEYHEmbXkvojmP17IwqfxQ" />
+		<consumersecret value="j9E3WaJcM0DNsqAyvEQqePnOVDJrCj2rAJc6KsMG8s" />
+		<authorizeurl value="http://api.twitter.com/oauth/authorize" />
+		<requesttokenurl value="http://api.twitter.com/oauth/request_token" />
+		<accesstokenurl value="http://api.twitter.com/oauth/access_token" />
+		<tokenreadyurl value="http://www.mimetic.com/" />
+
+		<accesstoken value="11804112-Z57f3ZDZD3PuhF3ZCpATUMQiCoYdr8MFMZXcqs37k" />
+		<accesstokensecret value="FVB5waKO6nrY9WVYAX8wp5CTGQXjrSaBAGnlQO6QM5I" />
+
+		<tinyurl>http://tinyurl.com/c8hz5zh</tinyurl>
+		<url>http://tinyurl.com/c8hz5zh</url>
+		<tweet>Is reading page {pagenumberInBook} of {booktitle}.</tweet>
+		<hashtags>#mimetic #mimeticbooks #ebook</hashtags>
+
+
+		<twitterSuccessMsg>You tweeted this page!</twitterSuccessMsg>
+		<twitterFailMsg>Tweet failed, but I don't know why!</twitterFailMsg>
+	</class>
+</settings>
