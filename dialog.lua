@@ -104,9 +104,34 @@ local sceneName = "settings"
 -- Registration, contact Us, Social Networks,
 -- other is a new screen, with About, Terms of Use, Legal Notices, Backups
 
+
+
+-------------------------------------------------
+-- makeTextInputField
 -- Create the text input fields
 -- Username/Password
-local function makeTextInputField(g, label, x,y, fieldX, w,h, value, isSecure)
+--[[
+Possible values are:
+
+"default" the default keyboard, supporting general text, numbers and punctuation
+"number" a numeric keypad
+"decimal" a keypad for entering decimal values
+"phone" a keypad for entering phone numbers
+"url" a keyboard for entering website URLs
+"email" a keyboard for entering email addresses
+
+From settings:
+	<dialogFont value="Avenir-Light" />
+	<dialogFontSize value="18" />
+	<dialogFontColor value="100,100,100,100%" />
+	<dialogTextLineHeight value="24" />
+	<dialogTextSpaceAfter value="24" />
+	<dialogBlockSpacing value="40" />
+	<dialogInfoTextAlignment value="Center" />
+
+--]]
+
+local function makeTextInputField(g, label, desc, style, x,y, fieldX, w,h, value, isSecure, inputType, isTextBlock)
 
 			---------------------------------------------------------------
 			-- TextField Listener
@@ -144,40 +169,156 @@ funx.tellUser ( "Text entered = " .. tostring( getObj().text ) )
 			local function defaultHandler(event)
 				textFieldHandler( function() return defaultField end )
 			end
-	label = label or ""
-	local params = {
-		text = label,
-		width = fieldX,
-		textstyles = textstyles,
-		defaultStyle = "dialogLabel",
-		cacheDir = "",
-	}
-	local labelText = funx.autoWrappedText( params )
-	g:insert(labelText)
-	labelText:setReferencePoint(display.TopLeftReferencePoint)
-	labelText.x = x
-	labelText.y = y + labelText.yAdjustment
+	
+	local linespace = funx.applyPercent(settings.dialog.dialogTextLineHeight, screenH)
+	local spaceafter = funx.applyPercent(settings.dialog.dialogTextSpaceAfter, screenH)
 
-
-	-- convert y to screen y
-	local xScreen, yScreen = g:localToContent(x,y)
-
-	-- Sign-in with registration, probably email, password?
-	local textField = native.newTextField( 0, 0, w, settings.dialog.dialogFontSize )
-	textField:setReferencePoint(display.TopLeftReferencePoint)
-	textField.x = xScreen + fieldX
-	textField.y = yScreen
-	value = value or ""
-	textField.text = value
-	if (isSecure) then
-		textField.isSecure = true
+	
+	
+	-- Write the description
+	local descText = ""
+	desc = desc or ""
+	if (desc ~= "") then
+		local params = {
+			text = desc,
+			font = settings.dialog.dialogDescFont,
+			size = settings.dialog.dialogDescFontSize,
+			width = funx.applyPercent(settings.dialog.fieldDescWidth, screenW),
+			textstyles = textstyles,
+			defaultStyle = style or "dialogDescription",
+			cacheDir = "",
+		}
+		descText = funx.autoWrappedText( params )
+		g:insert(descText)
+		descText:setReferencePoint(display.TopLeftReferencePoint)
+		descText.x = x
+		descText.y = y + descText.yAdjustment
+		y = y + descText.height + funx.applyPercent(settings.dialog.spaceAfterDesc, screenH)
 	end
 
-	textField:addEventListener( "userInput", defaultHandler )
+	-- Write the label
+	local labelText = "" 	-- need height of this later
+	label = label or ""
+	if (label ~= "") then
+		local params = {
+			text = label,
+			font = settings.dialog.dialogFont,
+			size = settings.dialog.dialogFontSize,
+			width = settings.dialog.fieldLabelWidth,
+			textstyles = textstyles,
+			defaultStyle = "dialogLabel",
+			cacheDir = "",
+		}
+		labelText = funx.autoWrappedText( params )
+		g:insert(labelText)
+		labelText:setReferencePoint(display.TopLeftReferencePoint)
+		labelText.x = x
+		labelText.y = y + labelText.yAdjustment
+	end
 
-	return textField
+	if (not isTextBlock) then
+		-- convert y to screen y
+		local xScreen, yScreen = g:localToContent(x,y)
+
+		-- Create the native textfield
+		local textField = native.newTextField( 0, 0, w, labelText.height )
+		textField:setReferencePoint(display.TopLeftReferencePoint)
+		textField.x = xScreen + fieldX
+		textField.y = yScreen
+		textField.inputType = inputType or "default"
+		textField.font = native.newFont( settings.dialog.dialogFont, settings.dialog.dialogFontSize )
+		value = value or ""
+		textField.text = value
+		textField.isSecure = isSecure
+
+		textField:addEventListener( "userInput", defaultHandler )
+
+		return textField, y
+	
+	end
 
 end
+
+
+
+--------------------------------------------------------------------------------
+--[[
+Create text fields based on the settings file.
+
+Input Types for dialog fields:
+	"default" the default keyboard, supporting general text, numbers and punctuation
+	"number" a numeric keypad
+	"decimal" a keypad for entering decimal values
+	"phone" a keypad for entering phone numbers
+	"url" a keyboard for entering website URLs
+	"email" a keyboard for entering email addresses
+
+Sample structure for a dialog:
+(The values are overwritten by values set in 'fields', in the event.params)
+local tfs = {
+			{
+			label = "Username",
+			desc = "",
+			id = "username",
+			width = 300,
+			height = 30,
+			value = event.params.username,
+			inputType = "",
+			isSecure = false,
+			},
+			{
+			label = "Password",
+			desc = "",
+			id = "password",
+			width = 300,
+			height = 30,
+			value = event.params.password,
+			inputType = "",
+			isSecure = false,
+			},
+			{
+			label = "SysPass",
+			desc = "Lock books marked 18+ years.",
+			id = "syspassword",
+			width = 300,
+			height = 30,
+			value = event.params.syspassword,
+			inputType = "",
+			isSecure = false,
+			},
+		}
+--]]	
+
+
+local function makeTextFields(g, tfs, w,h, x,y )
+	local textFields = {}
+
+	local innermargins = {}
+	for i,v in pairs(funx.split(settings.dialog.dialogInnerMargins)) do
+		innermargins[#innermargins+1] = funx.applyPercent(v, screenW)
+	end
+
+	local linespace = funx.applyPercent(settings.dialog.dialogTextLineHeight, screenH)
+	local spaceafter = funx.applyPercent(settings.dialog.dialogTextSpaceAfter, screenH)
+
+	local fieldX = x + funx.applyPercent(settings.dialog.dialogTextInputFieldXOffset, screenH)
+
+	local k = 1
+	for i,f in pairs(tfs) do
+		if (not f.id) then
+			local style = f.style or "dialogLargeDescription"
+			makeTextInputField(g, f.label, f.desc, f.style, x, y, fieldX, f.width, f.height, nil, nil, nil, true )
+		else
+			local style = f.style or "dialogDescription"
+			textFields[k], y = makeTextInputField(g, f.label, f.desc, f.style, x, y, fieldX, f.width, f.height, f.value, f.isSecure, f.inputType)
+		end
+		y = y + linespace + spaceafter
+	end
+
+	return textFields
+end
+
+
 
 
 -- Make some text for the settings
@@ -278,8 +419,8 @@ function scene:createScene( event )
 	local color = funx.stringToColorTable (settings.dialog.dialogBackgroundColor)
 	r:setFillColor(color[1], color[2], color[3], color[4])
 
-	local bkgdWidth = bkgd.width
-	local bkgdHeight = bkgd.height
+	local bkgdWidth = r.width
+	local bkgdHeight = r.height
 
 	-- Close button
 	local closeButton = widget.newButton{
@@ -293,9 +434,12 @@ function scene:createScene( event )
 	bkgd:insert(closeButton)
 	closeButton:setReferencePoint(display.TopRightReferencePoint)
 	-- allow 10 px for the shadow of the popup background
+	r:setReferencePoint(display.TopRightReferencePoint)
 	closeButton.x = midscreenX + (bkgdWidth/2) + (closeButton.width/2)
-	closeButton.y = midscreenY - (bkgdHeight)/2 - (closeButton.width/2)
+	--closeButton.y = midscreenY - (bkgdHeight)/2 - (closeButton.width/2)
+	closeButton.y = r.y - (closeButton.height/2)
 end
+
 
 
 -- Called BEFORE scene has moved onscreen:
@@ -332,44 +476,35 @@ function scene:willEnterScene( event )
 
 	-- INFO TEXT
 	-- Info, e.g. connected to which website...
-	t = funx.substitutions(settings.dialog.msgDialogBookstore, { bookstore = settings.dialog.httpShelvesServer } )
-	tblock = buildSettingsText(settingsElements, t, blockwidth, innermargins[2], funx.applyPercent(settings.dialog.dialogContentY, settingsElements.height))
-	settingsElements:insert(tblock)
-	y =  contentY + tblock.height + blockspace
+	y =  contentY
 
-	-- Sign-in instructions
-	-- Info, e.g. connected to which website...
-	t = settings.dialog.msgDialogSignin
-	tblock = buildSettingsText(settingsElements, t, blockwidth, innermargins[2], y)
-	settingsElements:insert(tblock)
-	y = y + tblock.height + spaceafter
+	
+	-- The structure of the dialog is a JSON file in the system folder
+	local filename = funx.trim(event.params.dialogStructure) or "dialog.structure.settings"
+	local tfs = funx.loadTable(filename, system.ResourceDirectory)
 
-	-- TEXT INPUT
-	-- Create the text input fields. Not OpenGL so let's handle this separately.
-	-- Positioning won't come from the group, so we have to translate positions.
-	-- Use the margins (above) to position
-	-- The text field has its own X position so fields can be left-aligned.
-	-- Pass field X position as distance from left side, not dependent on length of the label.
-	local x = innermargins[2]--midscreenX - (settingsElements.width/2) + innermargins[2]
-	local fieldX = x + funx.applyPercent(settings.dialog.dialogTextInputFieldXOffset, screenH)
-	local usernameField = makeTextInputField(settingsElements, "Username:", x, y, fieldX, 300, 30, event.params.username, false)
-	y = y + linespace + spaceafter
+	if (tfs) then
 
-	local pwField = makeTextInputField(settingsElements, "Password:", x, y, fieldX, 200, 30, event.params.password, true)	-- true->is password
-	y = y + linespace + blockspace
+		-- Enter the values from params into the table
+		local fields = event.params.fields
+		local subs = event.params.substitutions
+		for i, f in pairs(tfs) do
+			-- Subsitutions in the label/desc fields		
+			tfs[i].label = funx.substitutions (tfs[i].label, subs)
+			tfs[i].desc = funx.substitutions (tfs[i].desc, subs)
+		
+			if (fields[f.id] and fields[f.id] ~= "") then
+				tfs[i].value = fields[f.id]
+			end
+		end
 
 
-	-- Child Lock instructions
-	t = settings.dialog.msgDialogChildLock
-	tblock = buildSettingsText(settingsElements, t, blockwidth, innermargins[2], y)
-	settingsElements:insert(tblock)
-	y = y + tblock.height + spaceafter
+		x = innermargins[2]--midscreenX - (settingsElements.width/2) + innermargins[2]
 
-	local syspwField = makeTextInputField(settingsElements, "Child Lock:", x, y, fieldX, 40, 30, event.params.syspassword, true)	-- true->is password
+		self.nativeTextfields = makeTextFields(settingsElements, tfs, settingsElements.width, settingsElements.height, x,y)
 
-	-- Save the text fields for later destruction
-	self.nativeTextfields = { username = usernameField, password = pwField, syspassword = syspwField }
-
+	end
+	
 end
 
 
@@ -410,7 +545,7 @@ function scene:exitScene( event )
 		self.nativeTextfields = nil
 	end
 
-	storyboard.overlayResults = results
+	storyboard.dialogResults = results
 
 	-- Here is our trick for passing the results
 	if (params.saveResults) then

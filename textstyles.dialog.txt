@@ -6,3 +6,5 @@ Normal = Avenir,16,20,255,20,20,,100%,NORMAL,center,0,0,0,0,0
 dialogTitle=Avenir-Heavy,24,30,100,100,100,,100%,NORMAL,center,0,0,0,0,0
 dialogBody=Avenir-Light,18,24,60,60,60,,100%,NORMAL,left,0,24,0,0,0
 dialogLabel=Avenir-Medium,18,24,60,60,60,,100%,NORMAL,left,0,24,0,0,0
+dialogDescription=Avenir-Medium,16,20,100,100,120,,100%,NORMAL,left,0,24,0,0,0
+dialogLargeDescription=Avenir-Medium,18,24,60,60,60,,100%,NORMAL,left,0,24,0,0,0

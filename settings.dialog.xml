@@ -77,7 +77,7 @@
 		<msgDialogChildLock>To lock books which are rated appropriate for 18+ years of age, enter a lock code below:</msgDialogChildLock>
 
 		<!-- margins are percent of width of screen: L,T,R,B -->
-		<dialogWindowMargins value="5%, 5%, 5%, 5%" />
+		<dialogWindowMargins value="5%, 25%, 5%, 5%" />
 		<dialogInnerMargins value="8%, 8%, 8%, 8%" />
 		<dialogBackgroundColor value="230,230,230,100%" />
 		<dialogTextInputFieldsTop value="15%" />
@@ -86,7 +86,7 @@
 		<dialogFontSize value="18" />
 		<dialogFontColor value="100,100,100,100%" />
 		<dialogTextLineHeight value="24" />
-		<dialogTextSpaceAfter value="24" />
+		<dialogTextSpaceAfter value="32" />
 		<dialogBlockSpacing value="40" />
 		<dialogInfoTextAlignment value="Center" />
 		
@@ -98,7 +98,12 @@
 		<dialogContentY value= "20%" />
 		
 		<!-- we position these text fields from the left of the settings window -->
-		<dialogTextInputFieldXOffset value="8%" />
+		<dialogTextInputFieldXOffset value="10%" />
+		<fieldLabelWidth value="20%" />
+		<fieldDescWidth value="70%" />
+		
+		<spaceAfterDesc value = "16" />
+		
 		
 		<!-- lock code to prevent children from seeing 18+ rated books -->
 		<lockCodeSize value="4" />

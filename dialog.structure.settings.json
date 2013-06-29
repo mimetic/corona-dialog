@@ -1,0 +1,36 @@
+[
+  {
+    "desc": "You are connected to the bookstore {bookstore}.",
+    "style": "dialogLargeDescription"
+  },
+  {
+    "isSecure": false,
+    "value": "OogaBooga",
+    "label": "Username",
+    "id": "username",
+    "height": 30,
+    "width": 300,
+    "desc": "Enter your username and password to access books from the bookstore.",
+    "inputType": "default"
+  },
+  {
+    "isSecure": true,
+    "value": "pass",
+    "label": "Password",
+    "id": "password",
+    "height": 30,
+    "width": 300,
+    "desc": "",
+    "inputType": "default"
+  },
+  {
+    "isSecure": true,
+    "value": "syspass",
+    "label": "SysPass",
+    "id": "syspassword",
+    "height": 30,
+    "width": 300,
+    "desc": "Lock all books marked 18+ years with a pass code.",
+    "inputType": "default"
+  }
+]

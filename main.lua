@@ -23,11 +23,17 @@ end
 
 local function OpenDialogButtonRelease()
 	local params = {
-		username = "dgross",
-		password = "pass",
-		syspassword = "syspass",
-		email = "dgross@mimetic.com",
+		fields = {
+			username = "MyUserName",
+			password = "MyPassword",
+			syspassword = "MySysPass",
+			email = "dgross@mimetic.com",
+		},
+		substitutions = {
+			bookstore = "My Bookstore",
+		},
 		paramsFileName = "dialog_saved_params",
+		dialogStructure = "dialog.structure.settings.json",
 		saveResults = saveResults,	-- set this function or have another scene check storyboard.dialogResults
 	}
 
@@ -83,9 +89,12 @@ scene:addEventListener( "overlayBegan" )
 function scene:overlayEnded( event )
     print( "Main scene says, Overlay removed: " .. event.sceneName )
 	funx.dump(storyboard.dialogResults)
+	print( "----" )
+
 end
 scene:addEventListener( "overlayEnded" )
 
 storyboard.gotoScene("main")
 --------------------------------------------
 
+OpenDialogButtonRelease()
