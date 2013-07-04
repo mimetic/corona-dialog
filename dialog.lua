@@ -36,7 +36,7 @@ local funx = require ("funx")
 
 local storyboard = require "storyboard"
 local scene = storyboard.newScene()
-
+local dialogDefinition = {}
 --widget.setTheme( "theme_ios" )
 
 
@@ -170,8 +170,8 @@ funx.tellUser ( "Text entered = " .. tostring( getObj().text ) )
 				textFieldHandler( function() return defaultField end )
 			end
 	
-	local linespace = funx.applyPercent(settings.dialog.dialogTextLineHeight, screenH)
-	local spaceafter = funx.applyPercent(settings.dialog.dialogTextSpaceAfter, screenH)
+	local linespace = funx.applyPercent(dialogDefinition.dialogTextLineHeight or settings.dialog.dialogTextLineHeight, screenH)
+	local spaceafter = funx.applyPercent(dialogDefinition.dialogTextSpaceAfter or settings.dialog.dialogTextSpaceAfter, screenH)
 
 	
 	
@@ -181,9 +181,9 @@ funx.tellUser ( "Text entered = " .. tostring( getObj().text ) )
 	if (desc ~= "") then
 		local params = {
 			text = desc,
-			font = settings.dialog.dialogDescFont,
-			size = settings.dialog.dialogDescFontSize,
-			width = funx.applyPercent(settings.dialog.fieldDescWidth, screenW),
+			font = dialogDefinition.dialogDescFont or settings.dialog.dialogDescFont,
+			size = dialogDefinition.dialogDescFontSize or settings.dialog.dialogDescFontSize,
+			width = funx.applyPercent(dialogDefinition.fieldDescWidth or settings.dialog.fieldDescWidth, screenW),
 			textstyles = textstyles,
 			defaultStyle = style or "dialogDescription",
 			cacheDir = "",
@@ -193,7 +193,7 @@ funx.tellUser ( "Text entered = " .. tostring( getObj().text ) )
 		descText:setReferencePoint(display.TopLeftReferencePoint)
 		descText.x = x
 		descText.y = y + descText.yAdjustment
-		y = y + descText.height + funx.applyPercent(settings.dialog.spaceAfterDesc, screenH)
+		y = y + descText.height + funx.applyPercent(dialogDefinition.spaceAfterDesc or settings.dialog.spaceAfterDesc, screenH)
 	end
 
 	-- Write the label
@@ -202,9 +202,9 @@ funx.tellUser ( "Text entered = " .. tostring( getObj().text ) )
 	if (label ~= "") then
 		local params = {
 			text = label,
-			font = settings.dialog.dialogFont,
-			size = settings.dialog.dialogFontSize,
-			width = settings.dialog.fieldLabelWidth,
+			font = dialogDefinition.dialogFont or settings.dialog.dialogFont,
+			size = dialogDefinition.dialogFontSize or settings.dialog.dialogFontSize,
+			width = dialogDefinition.fieldLabelWidth or settings.dialog.fieldLabelWidth,
 			textstyles = textstyles,
 			defaultStyle = "dialogLabel",
 			cacheDir = "",
@@ -226,7 +226,7 @@ funx.tellUser ( "Text entered = " .. tostring( getObj().text ) )
 		textField.x = xScreen + fieldX
 		textField.y = yScreen
 		textField.inputType = inputType or "default"
-		textField.font = native.newFont( settings.dialog.dialogFont, settings.dialog.dialogFontSize )
+		textField.font = native.newFont( dialogDefinition.dialogFont or settings.dialog.dialogFont, settings.dialog.dialogFontSize )
 		value = value or ""
 		textField.text = value
 		textField.isSecure = isSecure
@@ -297,7 +297,7 @@ Sample JSON structure for a dialog:
 --]]	
 
 
-local function makeTextFields(g, tfs, w,h, x,y )
+local function makeTextFields(g, dialogDefinition, w,h, x,y )
 	local textFields = {}
 
 	local innermargins = {}
@@ -305,13 +305,13 @@ local function makeTextFields(g, tfs, w,h, x,y )
 		innermargins[#innermargins+1] = funx.applyPercent(v, screenW)
 	end
 
-	local linespace = funx.applyPercent(settings.dialog.dialogTextLineHeight, screenH)
-	local spaceafter = funx.applyPercent(settings.dialog.dialogTextSpaceAfter, screenH)
+	local linespace = funx.applyPercent(dialogDefinition.dialogTextLineHeight or settings.dialog.dialogTextLineHeight, screenH)
+	local spaceafter = funx.applyPercent(dialogDefinition.dialogTextSpaceAfter or settings.dialog.dialogTextSpaceAfter, screenH)
 
-	local fieldX = x + funx.applyPercent(settings.dialog.dialogTextInputFieldXOffset, screenH)
+	local fieldX = x + funx.applyPercent(dialogDefinition.dialogTextInputFieldXOffset or settings.dialog.dialogTextInputFieldXOffset, screenH)
 
 	local k = 1
-	for i,f in pairs(tfs) do
+	for i,f in pairs(dialogDefinition) do
 		if (not f.id) then
 			local style = f.style or "dialogLargeDescription"
 			makeTextInputField(g, f.label, f.desc, f.style, x, y, fieldX, f.width, f.height, nil, nil, nil, true )
@@ -372,7 +372,7 @@ local testing = false
 	end
 
 	local params = {
-		text = settings.dialog.dialogTitle,
+		text = dialogDefinition.dialogTitle or settings.dialog.dialogTitle,
 		width = g.width - innermargins[1] - innermargins[3],
 		textstyles = textstyles,
 		defaultStyle = "dialogTitle",
@@ -421,6 +421,9 @@ end
 ---------------------------------------------------------------------------------
 
 -- Called when the scene's view does not exist:
+-- Some settings come from either the dialog definition OR the settings file, with the
+-- dialog definition taking precendent. Other settings should be the same though the app
+-- only come from the settings.
 function scene:createScene( event )
 	local group = self.view
 	rebuildDisplaySettings()
@@ -429,16 +432,21 @@ function scene:createScene( event )
 	group:insert(bkgd)
 	group.bkgd = bkgd
 
+	-- The structure of the dialog is a JSON file in the system folder
+	local filename = funx.trim(event.params.dialogStructure) or "dialog.structure.settings"
+	dialogDefinition = funx.loadTable(filename, system.ResourceDirectory)
+
 	local margins = {}
-	for i,v in pairs(funx.split(settings.dialog.dialogWindowMargins)) do
+	for i,v in pairs(funx.split(dialogDefinition.dialogWindowMargins or settings.dialog.dialogWindowMargins)) do
 		margins[#margins+1] = funx.applyPercent(v, screenW)
 	end
-	
+
+	local backgroundColor = dialogDefinition.dialogBackgroundColor or settings.dialog.dialogBackgroundColor
 	local rrectCorners = 10
 	
 	-- BACKGROUND + CLOSE BUTTON + CANCEL BUTTON
 	local r = display.newRoundedRect(bkgd, margins[1], margins[2], screenW - margins[1] - margins[3],screenH - margins[2] - margins[4], rrectCorners, rrectCorners)
-	local color = funx.stringToColorTable (settings.dialog.dialogBackgroundColor)
+	local color = funx.stringToColorTable (backgroundColor)
 	r:setFillColor(color[1], color[2], color[3], color[4])
 
 	local bkgdWidth = r.width
@@ -502,63 +510,61 @@ end
 -- Called BEFORE scene has moved onscreen:
 function scene:willEnterScene( event )
 	local group = self.view
+	
+	-- Structure of dialog was read into 'dialogDefinition' in 'create'
 
-	local x = 0
-	local y = 0
-	local t = ""
-	local tblock = {}
+	if (dialogDefinition) then
+	
+		local x = 0
+		local y = 0
+		local t = ""
+		local tblock = {}
 
-	local bkgd = group.bkgd
-	bkgd:setReferencePoint( display.CenterReferencePoint )
+		local bkgd = group.bkgd
+		bkgd:setReferencePoint( display.CenterReferencePoint )
 
-	-- SETTINGS ELEMENTS, text, etc.
-	local settingsElements = buildSettingsElements(bkgd.width, bkgd.height)
-	group:insert(settingsElements)
-	group.dialogElements = settingsElements
-	settingsElements:setReferencePoint( display.CenterReferencePoint )
+		-- SETTINGS ELEMENTS, text, etc.
+		local settingsElements = buildSettingsElements(bkgd.width, bkgd.height)
+		group:insert(settingsElements)
+		group.dialogElements = settingsElements
+		settingsElements:setReferencePoint( display.CenterReferencePoint )
 
-	settingsElements.x = bkgd.x
-	settingsElements.y = bkgd.y
+		settingsElements.x = bkgd.x
+		settingsElements.y = bkgd.y
 
-	local innermargins = {}
-	for i,v in pairs(funx.split(settings.dialog.dialogInnerMargins)) do
-		innermargins[#innermargins+1] = funx.applyPercent(v, screenW)
-	end
+		local innermargins = {}
+		for i,v in pairs(funx.split(dialogDefinition.dialogInnerMargins or settings.dialog.dialogInnerMargins)) do
+			innermargins[#innermargins+1] = funx.applyPercent(v, screenW)
+		end
 
-	local linespace = funx.applyPercent(settings.dialog.dialogTextLineHeight, screenH)
-	local blockspace = funx.applyPercent(settings.dialog.dialogBlockSpacing, screenH)
-	local spaceafter = funx.applyPercent(settings.dialog.dialogTextSpaceAfter, screenH)
-	local blockwidth =  bkgd.width - innermargins[2] - innermargins[4]
-	local contentY = funx.applyPercent(settings.dialog.dialogContentY, settingsElements.height)
+		local linespace = funx.applyPercent(dialogDefinition.dialogTextLineHeight or dialogDefinition.dialogTextLineHeight or settings.dialog.dialogTextLineHeight, screenH)
+		local blockspace = funx.applyPercent(dialogDefinition.dialogBlockSpacing or dialogDefinition.dialogBlockSpacing or settings.dialog.dialogBlockSpacing, screenH)
+		local spaceafter = funx.applyPercent(dialogDefinition.dialogTextSpaceAfter or dialogDefinition.dialogTextSpaceAfter or settings.dialog.dialogTextSpaceAfter, screenH)
+		local blockwidth =  bkgd.width - innermargins[2] - innermargins[4]
+		local contentY = funx.applyPercent(dialogDefinition.dialogContentY or dialogDefinition.dialogContentY or settings.dialog.dialogContentY, settingsElements.height)
 
-	-- INFO TEXT
-	-- Info, e.g. connected to which website...
-	y =  contentY
+		-- INFO TEXT
+		-- Info, e.g. connected to which website...
+		y =  contentY
 
 	
-	-- The structure of the dialog is a JSON file in the system folder
-	local filename = funx.trim(event.params.dialogStructure) or "dialog.structure.settings"
-	local tfs = funx.loadTable(filename, system.ResourceDirectory)
-
-	if (tfs) then
 
 		-- Enter the values from params into the table
 		local fields = event.params.fields
 		local subs = event.params.substitutions
-		for i, f in pairs(tfs) do
+		for i, f in pairs(dialogDefinition.elements) do
 			-- Subsitutions in the label/desc fields		
-			tfs[i].label = funx.substitutions (tfs[i].label, subs)
-			tfs[i].desc = funx.substitutions (tfs[i].desc, subs)
+			f.label = funx.substitutions (f.label, subs)
+			f.desc = funx.substitutions (f.desc, subs)
 		
 			if (fields[f.id] and fields[f.id] ~= "") then
-				tfs[i].value = fields[f.id]
+				f.value = fields[f.id]
 			end
 		end
 
-
 		x = innermargins[2]--midscreenX - (settingsElements.width/2) + innermargins[2]
 
-		self.nativeTextfields = makeTextFields(settingsElements, tfs, settingsElements.width, settingsElements.height, x,y)
+		self.nativeTextfields = makeTextFields(settingsElements, dialogDefinition.elements, settingsElements.width, settingsElements.height, x,y)
 
 	end
 	
