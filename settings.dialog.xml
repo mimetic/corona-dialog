@@ -124,10 +124,16 @@
 		<dialogButtonLabelFontOverColor value="120,120,120,100%" />
 
 		<!-- close button -->
-		<dialogCloseButton value="_ui/button-cancel-round.png" />
-		<dialogCloseButtonOver value="_ui/button-cancel-round-over.png" />
+		<dialogCloseButton value="_ui/button-check-round-black.png" />
+		<dialogCloseButtonOver value="_ui/button-check-round-black-over.png" />
 		<dialogCloseButtonWidth value="44" />
 		<dialogCloseButtonHeight value="44" />
+		
+		<!-- cancel button -->
+		<dialogCancelButton value="_ui/button-x-round-black.png" />
+		<dialogCancelButtonOver value="_ui/button-x-round-black-over.png" />
+		<dialogCancelButtonWidth value="44" />
+		<dialogCancelButtonHeight value="44" />
 		
 
 	</class>

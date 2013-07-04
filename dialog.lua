@@ -253,40 +253,47 @@ Input Types for dialog fields:
 	"url" a keyboard for entering website URLs
 	"email" a keyboard for entering email addresses
 
-Sample structure for a dialog:
-(The values are overwritten by values set in 'fields', in the event.params)
-local tfs = {
-			{
-			label = "Username",
-			desc = "",
-			id = "username",
-			width = 300,
-			height = 30,
-			value = event.params.username,
-			inputType = "",
-			isSecure = false,
-			},
-			{
-			label = "Password",
-			desc = "",
-			id = "password",
-			width = 300,
-			height = 30,
-			value = event.params.password,
-			inputType = "",
-			isSecure = false,
-			},
-			{
-			label = "SysPass",
-			desc = "Lock books marked 18+ years.",
-			id = "syspassword",
-			width = 300,
-			height = 30,
-			value = event.params.syspassword,
-			inputType = "",
-			isSecure = false,
-			},
-		}
+Each entry in the file MUST have a unique 'id' if it is an input field. If it does
+not have an id, with will be treated as an informational text block.
+
+Sample JSON structure for a dialog:
+(The 'value' fields are overwritten by values set in 'fields', in the event.params)
+[
+  {
+    "desc": "You are connected to the bookstore {bookstore}.",
+    "style": "dialogLargeDescription"
+  },
+  {
+    "isSecure": false,
+    "value": "OogaBooga",
+    "label": "Username",
+    "id": "username",
+    "height": 30,
+    "width": 300,
+    "desc": "Enter your username and password to access books from the bookstore.",
+    "inputType": "default"
+  },
+  {
+    "isSecure": true,
+    "value": "pass",
+    "label": "Password",
+    "id": "password",
+    "height": 30,
+    "width": 300,
+    "desc": "",
+    "inputType": "default"
+  },
+  {
+    "isSecure": true,
+    "value": "syspass",
+    "label": "SysPass",
+    "id": "syspassword",
+    "height": 30,
+    "width": 300,
+    "desc": "Lock all books marked 18+ years with a pass code.",
+    "inputType": "default"
+  }
+]
 --]]	
 
 
@@ -310,7 +317,8 @@ local function makeTextFields(g, tfs, w,h, x,y )
 			makeTextInputField(g, f.label, f.desc, f.style, x, y, fieldX, f.width, f.height, nil, nil, nil, true )
 		else
 			local style = f.style or "dialogDescription"
-			textFields[k], y = makeTextInputField(g, f.label, f.desc, f.style, x, y, fieldX, f.width, f.height, f.value, f.isSecure, f.inputType)
+			textFields[f.id], y = makeTextInputField(g, f.label, f.desc, f.style, x, y, fieldX, f.width, f.height, f.value, f.isSecure, f.inputType)
+			k = k + 1
 		end
 		y = y + linespace + spaceafter
 	end
@@ -389,6 +397,18 @@ end
 -- It is a modal scene, by the way.
 
 local function closeDialogButtonRelease()
+	scene.saveResults = true
+	storyboard.hideOverlay("fade", 500)
+	return true
+end
+
+
+----------------------------------------
+-- Cancel the dialog
+-- It is a modal scene, by the way.
+
+local function cancelDialogButtonRelease()
+	scene.saveResults = false
 	storyboard.hideOverlay("fade", 500)
 	return true
 end
@@ -413,16 +433,18 @@ function scene:createScene( event )
 	for i,v in pairs(funx.split(settings.dialog.dialogWindowMargins)) do
 		margins[#margins+1] = funx.applyPercent(v, screenW)
 	end
-
-	-- BACKGROUND + CLOSE BUTTON
-	local r = display.newRoundedRect(bkgd, margins[1], margins[2], screenW - margins[1] - margins[3],screenH - margins[2] - margins[4], 10, 10)
+	
+	local rrectCorners = 10
+	
+	-- BACKGROUND + CLOSE BUTTON + CANCEL BUTTON
+	local r = display.newRoundedRect(bkgd, margins[1], margins[2], screenW - margins[1] - margins[3],screenH - margins[2] - margins[4], rrectCorners, rrectCorners)
 	local color = funx.stringToColorTable (settings.dialog.dialogBackgroundColor)
 	r:setFillColor(color[1], color[2], color[3], color[4])
 
 	local bkgdWidth = r.width
 	local bkgdHeight = r.height
 
-	-- Close button
+	-- Close button - same as "OK"
 	local closeButton = widget.newButton{
 		id = "dialogclose",
 		defaultFile = settings.dialog.dialogCloseButton,
@@ -435,9 +457,44 @@ function scene:createScene( event )
 	closeButton:setReferencePoint(display.TopRightReferencePoint)
 	-- allow 10 px for the shadow of the popup background
 	r:setReferencePoint(display.TopRightReferencePoint)
-	closeButton.x = midscreenX + (bkgdWidth/2) + (closeButton.width/2)
+
+	-- top right corner
+	--closeButton.x = midscreenX + (bkgdWidth/2) + (closeButton.width/2)
 	--closeButton.y = midscreenY - (bkgdHeight)/2 - (closeButton.width/2)
-	closeButton.y = r.y - (closeButton.height/2)
+	--closeButton.y = r.y - (closeButton.height/2)
+
+	-- Inside top right
+	closeButton.x = midscreenX + (bkgdWidth/2) - 20
+	closeButton.y = r.y + 20
+
+
+	-- Cancel button
+	local cancelButton = widget.newButton{
+		id = "dialogcancel",
+		defaultFile = settings.dialog.dialogCancelButton,
+		overFile = settings.dialog.dialogCancelButtonOver,
+		width = settings.dialog.dialogCancelButtonWidth,
+		height = settings.dialog.dialogCancelButtonHeight,
+		onRelease = cancelDialogButtonRelease,
+	}
+	bkgd:insert(cancelButton)
+	
+	-- top right on edge
+	cancelButton:setReferencePoint(display.TopRightReferencePoint)
+	
+	-- allow 10 px for the shadow of the popup background
+	cancelButton.x = midscreenX + (bkgdWidth/2) + (cancelButton.width/2) - cancelButton.width - 20
+	--cancelButton.y = midscreenY - (bkgdHeight)/2 - (cancelButton.width/2)
+	cancelButton.y = r.y - (cancelButton.height/2)
+
+	-- top right inside, 2nd position
+	cancelButton:setReferencePoint(display.TopRightReferencePoint)
+	-- allow 10 px for the shadow of the popup background
+	cancelButton.x = midscreenX + (bkgdWidth/2)  - cancelButton.width - (2*20)
+	--cancelButton.y = midscreenY - (bkgdHeight)/2 - (cancelButton.width/2)
+	cancelButton.y = r.y + 20
+
+
 end
 
 
@@ -536,8 +593,9 @@ function scene:exitScene( event )
 
 	if (self.nativeTextfields) then
 		-- Get text field values
-		for i,f in pairs(self.nativeTextfields) do
-			results[i] = f.text
+		for id,f in pairs(self.nativeTextfields) do
+			results[id] = f.text
+			
 			funx.tellUser ( "Text entered = " ..  f.text )
 			f:removeSelf()
 		end
@@ -548,8 +606,10 @@ function scene:exitScene( event )
 	storyboard.dialogResults = results
 
 	-- Here is our trick for passing the results
-	if (params.saveResults) then
+	if (params.saveResults and self.saveResults) then
 		params.saveResults(results)
+	elseif (not self.saveResults) then
+		funx.tellUser ("Cancelled")
 	end
 
 end
