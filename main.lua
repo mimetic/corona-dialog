@@ -2,6 +2,7 @@
 local storyboard = require "storyboard"
 storyboard.isDebug = true
 
+-- This creates a new dialog
 local dialog = require ("dialog")
 
 
@@ -18,32 +19,47 @@ Verify the user with WordPress
 
 local mb_api = require ("mb_api")
 
-function dumpResult()
-	print ("STATUS:")
-	funx.dump(mb_api.status)
-	print ("mb_api.result = ")
-	funx.dump(mb_api.result)
-end
 
-function onError(event)
-	print ("ERROR:")
-	funx.dump(mb_api.status)
-end
-
-function onSuccess(result)
-	print ("onSuccess:")
-	dumpResult()
+--------------------------------------------
+screenW, screenH = display.contentWidth, display.contentHeight
+viewableScreenW, viewableScreenH = display.viewableContentWidth, display.viewableContentHeight
+screenOffsetW, screenOffsetH = display.contentWidth -  display.viewableContentWidth, display.contentHeight - display.viewableContentHeight
+midscreenX = screenW*(0.5)
+midscreenY = screenH*(0.5)
 	
-	local t = "status: " .. mb_api.result.status
-	local o_a = display.newText( t, 20, 20, screenW, screenH, "Helvetica", 18 )
+-- testing output:
+local outA = display.newText( "Output", 100, 20, screenW, screenH, "Helvetica", 18 )
+local outB = display.newText( "Output", 100, 40, screenW, screenH, "Helvetica", 18 )
 
-	t = "displayname: " .. mb_api.result.user.displayname
-	local o_b = display.newText( t, 20, 40, screenW, screenH, "Helvetica", 18 )
-	
-	
-end
 
-local function verify_user(username, password)
+local function verify_user(results)
+
+		function dumpResult()
+			print ("STATUS:")
+			funx.dump(mb_api.status)
+			print ("mb_api.result = ")
+			funx.dump(mb_api.result)
+		end
+
+		function onError(event)
+			print ("ERROR:")
+			funx.dump(mb_api.status)
+		end
+
+		function onSuccess(result)
+			print ("onSuccess:")
+			dumpResult()
+	
+			local t = "status: " .. mb_api.result.status
+			outA.text = t
+
+			t = "displayname: " .. mb_api.result.user.displayname
+			outB.text = t
+		end
+
+	--------------------------------------------
+	local username = results.username
+	local password = results.password
 	local url = "http://localhost/photobook/wordpress/"
 	--local username = "david"
 	--local password = "nookie"
@@ -59,61 +75,26 @@ local function verify_user(username, password)
 end
 
 
+local function cancelled(results)
+	funx.tellUser ("Cancelled")
+end
+
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
--- A function the dialog can call with the results,
--- to save them or use them.
--- The alternative is to check "storyboard.dialogResults" which is set by the dialog.
-local function saveResults(results)
-	--funx.dump(results)
-	if (results) then
-		local fn = "saved_dialog_values"
-		local res = funx.saveTable(results, fn .. ".json", system.DocumentsDirectory)
-		if (res) then
-			funx.tellUser("Saved")
-		else
-			funx.tellUser("SYSTEM ERROR: Could not save the results!")
-		end
-	end
-	
-	-- Check this info against the WordPress site
-	verify_user(results.username, results.password)
-	
-	
-end
-
-
-
-local function OpenDialogButtonRelease()
-	local fields = funx.loadTable("saved_dialog_values.json", system.DocumentsDirectory)
-	local params = {
-		fields = fields,
-		substitutions = {
-			bookstore = "My Bookstore",
-		},
-		paramsFileName = "dialog_saved_params",
-		dialogStructure = "dialog.structure.settings.json",
-		saveResults = saveResults,	-- set this function or have another scene check storyboard.dialogResults
-	}
-
-	local options = {
-		effect = "fade",
-		time = 250,
-		isModal = true,
-		params = params,
-	}
-
-	storyboard.showOverlay( "dialog", options )
-end
 
 
 
 ------------------------------------------------
 -- MUST have another scene around if you want to call an overlay, or it crashes!
+local scene = storyboard.newScene("main")
+
 local widget = require "widget"
 
-local scene = storyboard.newScene("main")
+local function OpenDialogButtonRelease(event)
+	-- Show the dialog
+	dialog:show(event.target.id)
+end
 
 function scene:createScene( event )
         local group = self.view
@@ -122,7 +103,7 @@ function scene:createScene( event )
 
         -- Testing open button
 		local openButton = widget.newButton{
-			id = "dialogopen",
+			id = "login",
 			defaultFile = "_ui/button-gear-gray.png",
 			overFile = "_ui/button-gear-gray-over.png",
 			width = 44,
@@ -157,4 +138,34 @@ scene:addEventListener( "overlayEnded" )
 storyboard.gotoScene("main")
 --------------------------------------------
 
-OpenDialogButtonRelease()
+
+local name = "login"
+
+-- Options for the storyboard
+local options = {
+	effect = "fade",
+	time = 250,
+	isModal = true,
+}
+
+-- Options for the dialog builder
+local params = {
+	name = name,
+	substitutions = {
+		bookstore = "My Bookstore",
+	},
+	paramsFileName = "dialog_saved_params",
+	dialogStructure = "dialog.structure.settings.json",
+	restoreValues = true,	-- restore previous results from disk
+	saveValues = true,	-- save the results to disk
+	onSubmitButton = verify_user, -- set this function or have another scene check storyboard.dialogResults
+	onCancelButton = cancelled, -- set this function or have another scene check storyboard.dialogResults
+	showSavedFeedback = false,	-- show "saved" if save succeeds
+	options = options,
+}
+
+
+-- Creates a new dialog scene
+dialog.new(params)
+
+dialog:show(name)
