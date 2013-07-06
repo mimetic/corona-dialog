@@ -10,9 +10,10 @@
       "label": "Username",
       "id": "username",
       "height": 30,
-      "width": 250,
+      "width": 300,
       "desc": "Enter your username and password to access books from the bookstore.",
-      "inputType": "default"
+      "inputType": "default",
+	  "fieldType": "textfield"
     },
     {
       "isSecure": true,
@@ -20,27 +21,29 @@
       "label": "Password",
       "id": "password",
       "height": 30,
-      "width": 250,
+      "width": 300,
       "desc": "",
-      "inputType": "default"
-    },
+      "inputType": "default",
+      "fieldType": "textfield"
+   },
     {
-      "isSecure": true,
-      "value": "syspass",
-      "label": "SysPass",
-      "id": "syspassword",
-      "height": 30,
-      "width": 250,
-      "desc": "Lock all books marked 18+ years with a pass code.",
-      "inputType": "default"
+      "isSecure": false,
+      "value": "Type a comment.",
+      "label": "Comment",
+      "id": "comment",
+      "height": 100,
+      "width": 300,
+      "desc": "Enter a comment here.",
+      "inputType": "default",
+      "fieldType": "textbox"
     }
   ],
   "dialogBackgroundColor": "230,230,230,100%",
-  "dialogInnerMargins": "8%, 8%, 8%, 8%",
-  "dialogWindowMargins": "5%, 15%, 5%, 5%",
+  "dialogInnerMargins": "8%, 4%, 8%, 8%",
+  "dialogWindowMargins": "5%, 5%, 5%, 5%",
   "dialogTextInputFieldsTop": "",
   "dialogFont": "Avenir-Light",
-  "dialogFontSize": 18,
+  "dialogFontSize": 16,
   "dialogFontColor": "100,100,100,100%",
   "dialogTextLineHeight": 24,
   "dialogTextSpaceAfter": 32,

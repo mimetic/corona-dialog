@@ -46,6 +46,8 @@
 		results = {},	-- the results of the dialog, i.e. the data
 	}
 
+	GOTCHA:
+	- the label and description text blocks use textstyles, so the settings in the dialog structure probably won't have any effect. You'll wonder why change those values and nothing happens!!!
 
 ]]
 
@@ -140,7 +142,7 @@ function S.new(params)
 	if (funx.fileExists("_user/textstyles.txt", system.ResourceDirectory)) then
 		textstyles = funx.loadTextStyles("_user/textstyles.txt", system.ResourceDirectory) or {}
 	end
-	local systemTextStyles = funx.loadTextStyles("textstyles.dialog.txt", system.ResourceDirectory) or {}
+	local systemTextStyles = funx.loadTextStyles("dialog.textstyles.txt", system.ResourceDirectory) or {}
 	local userTextStyles = {}
 	local p = "_user/textstyles.txt"
 	if (funx.fileExists(p, system.ResourceDirectory)) then
@@ -191,7 +193,7 @@ function S.new(params)
 
 	--]]
 
-	local function makeTextInputField(g, label, desc, style, x,y, fieldX, w,h, value, isSecure, inputType, isTextBlock)
+	local function makeTextInputField(g, label, desc, style, x,y, fieldX, w,h, value, isSecure, inputType, isTextBlock, fieldType)
 
 				---------------------------------------------------------------
 				-- TextField Listener
@@ -256,14 +258,19 @@ function S.new(params)
 			y = y + descText.height + funx.applyPercent(dialogDefinition.spaceAfterDesc or settings.dialog.spaceAfterDesc, screenH)
 		end
 
+
+		local font = dialogDefinition.dialogFont or settings.dialog.dialogFont
+		local fontsize = dialogDefinition.dialogFontSize or settings.dialog.dialogFontSize
+
+
 		-- Write the label
 		local labelText = "" 	-- need height of this later
 		label = label or ""
 		if (label ~= "") then
 			local p = {
 				text = label,
-				font = dialogDefinition.dialogFont or settings.dialog.dialogFont,
-				size = dialogDefinition.dialogFontSize or settings.dialog.dialogFontSize,
+				font = font,
+				size = fontsize,
 				width = dialogDefinition.fieldLabelWidth or settings.dialog.fieldLabelWidth,
 				textstyles = textstyles,
 				defaultStyle = "dialogLabel",
@@ -277,26 +284,44 @@ function S.new(params)
 		end
 
 		if (not isTextBlock) then
-			-- convert y to screen y
-			local xScreen, yScreen = g:localToContent(x,y)
+			if (fieldType == "textbox") then
+				-- convert y to screen y
+				local xScreen, yScreen = g:localToContent(x,y)
 
-			-- Create the native textfield
-			local textField = native.newTextField( 0, 0, w, labelText.height )
-			textField:setReferencePoint(display.TopLeftReferencePoint)
-			textField.x = xScreen + fieldX
-			textField.y = yScreen
-			textField.inputType = inputType or "default"
-			textField.font = native.newFont( dialogDefinition.dialogFont or settings.dialog.dialogFont, settings.dialog.dialogFontSize )
-			value = value or ""
-			textField.text = value
-			textField.isSecure = isSecure
+				-- Create the native textfield
+				local textBox = native.newTextBox( 0, 0, w, h )
+				textBox:setReturnKey('default')
+				textBox.isEditable = true
+				textBox:setReferencePoint(display.TopLeftReferencePoint)
+				textBox.x = xScreen + fieldX
+				textBox.y = yScreen
+				textBox.font = native.newFont( font, fontsize )
+				value = value or ""
+				textBox.text = value
+				textBox:addEventListener( "userInput", defaultHandler )
+				return textBox, y
+			else
+				-- Text Field
+				-- convert y to screen y
+				local xScreen, yScreen = g:localToContent(x,y)
 
-			textField:addEventListener( "userInput", defaultHandler )
+				-- Create the native textfield
+				local textField = native.newTextField( 0, 0, w, labelText.height )
+				textField:setReturnKey('next')
+				textField:setReferencePoint(display.TopLeftReferencePoint)
+				textField.x = xScreen + fieldX
+				textField.y = yScreen
+				textField.inputType = inputType or "default"
+				textField.font = native.newFont( font, fontsize )
+				value = value or ""
+				textField.text = value
+				textField.isSecure = isSecure
 
-			return textField, y
-	
-		end
-
+				textField:addEventListener( "userInput", defaultHandler )
+				return textField, y
+			end
+		end -- if not text block
+		
 	end
 
 
@@ -373,11 +398,13 @@ function S.new(params)
 		local k = 1
 		for i,f in pairs(dialogDefinition) do
 			if (not f.id) then
+				-- Make a text block
 				local style = f.style or "dialogLargeDescription"
 				makeTextInputField(g, f.label, f.desc, f.style, x, y, fieldX, f.width, f.height, nil, nil, nil, true )
 			else
+				-- Make a text input field
 				local style = f.style or "dialogDescription"
-				textFields[f.id], y = makeTextInputField(g, f.label, f.desc, f.style, x, y, fieldX, f.width, f.height, f.value, f.isSecure, f.inputType)
+				textFields[f.id], y = makeTextInputField(g, f.label, f.desc, f.style, x, y, fieldX, f.width, f.height, f.value, f.isSecure, f.inputType, false, f.fieldType)
 				k = k + 1
 			end
 			y = y + linespace + spaceafter
@@ -426,8 +453,10 @@ function S.new(params)
 		r.x = 0
 		r.y = 0
 
+		-- a string in the form, L,T,R,B
 		local innermargins = {}
-		for i,v in pairs(funx.split(settings.dialog.dialogInnerMargins)) do
+		local im = dialogDefinition.dialogInnerMargins or settings.dialog.dialogInnerMargins
+		for i,v in pairs(funx.split(im)) do
 			innermargins[#innermargins+1] = funx.applyPercent(v, screenW)
 		end
 

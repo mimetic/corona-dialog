@@ -12,7 +12,8 @@
       "height": 30,
       "width": 250,
       "desc": "Enter your username and password to access books from the bookstore.",
-      "inputType": "default"
+      "inputType": "default",
+	  "fieldType": "textfield"
     },
     {
       "isSecure": true,
@@ -22,8 +23,9 @@
       "height": 30,
       "width": 250,
       "desc": "",
-      "inputType": "default"
-    },
+      "inputType": "default",
+      "fieldType": "textfield"
+   },
     {
       "isSecure": true,
       "value": "syspass",
@@ -32,7 +34,8 @@
       "height": 30,
       "width": 250,
       "desc": "Lock all books marked 18+ years with a pass code.",
-      "inputType": "default"
+      "inputType": "default",
+      "fieldType": "textfield"
     }
   ],
   "dialogBackgroundColor": "230,230,230,100%",
