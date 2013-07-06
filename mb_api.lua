@@ -388,6 +388,24 @@ function app.getNonce(controller, method, nextFunction)
 	network.request( url.."mb/book/get_nonce", "POST", networkListener,  params)
 end
 
+----------------------------------------
+-- getUserInfo
+-- A handy packaging of the getCurrentUserInfo.
+-- It calls onSuccess or onFailure as appropropriate.
+-- This is useful for "login".
+function app.getUserInfo(url, username, password, onSuccess, onFailure)
+
+	local params = {}
+	local controller = "auth"
+	local method = "generate_auth_cookie"
+	local action = app.getCurrentUserInfo
+	local callback = onSuccess
+	local onerror = onError
+	app.access(url, username, password, controller, method, params, action, onSuccess, onFailure)
+end
+
+
+----------------------------------------
 -- nextFunction is function to call after getting the cookie
 -- callback is function to call when everything is finished
 function app.access(url, username, password, controller, method, params, nextFunction, callback, onError)
@@ -403,7 +421,6 @@ function app.access(url, username, password, controller, method, params, nextFun
 	method = method or "generate_auth_cookie"
 	app.getNonce(controller, method, app.generateAuthCookie)
 end
-
 
 
 return app

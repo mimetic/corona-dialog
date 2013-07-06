@@ -34,21 +34,14 @@ local outB = display.newText( "Output", 100, 40, screenW, screenH, "Helvetica", 
 
 local function verify_user(results)
 
-		function dumpResult()
-			print ("STATUS:")
-			funx.dump(mb_api.status)
-			print ("mb_api.result = ")
-			funx.dump(mb_api.result)
-		end
-
-		function onError(event)
+		function onError(result)
 			print ("ERROR:")
-			funx.dump(mb_api.status)
+			funx.dump(result)
 		end
 
 		function onSuccess(result)
 			print ("onSuccess:")
-			dumpResult()
+			funx.dump(result)
 	
 			local t = "status: " .. mb_api.result.status
 			outA.text = t
@@ -61,18 +54,12 @@ local function verify_user(results)
 	local username = results.username
 	local password = results.password
 	local url = "http://localhost/photobook/wordpress/"
-	--local username = "david"
-	--local password = "nookie"
-	local params = {}
-	local controller = "auth"
-	local method = "generate_auth_cookie"
-	local action = mb_api.getCurrentUserInfo
-	local callback = onSuccess
-	local onerror = onError
-
-	mb_api.access(url, username, password, controller, method, params, action, callback, onerror)
+	
+	mb_api.getUserInfo(url, username, password, onSuccess, onError)
 
 end
+
+
 
 
 local function cancelled(results)
