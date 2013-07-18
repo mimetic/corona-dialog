@@ -1,0 +1,83 @@
+{
+  "elements": [
+    {
+      "isText": true,
+      "id": "store",
+      "text": "This app is connected to {bookstore}.",
+      "style": "dialogLargeDescription"
+    },
+    {
+      "isSecure": false,
+      "value": "???",
+      "label": "Username",
+      "id": "username",
+      "height": 30,
+      "width": "100%",
+      "desc": "Sign up for a new account with {bookstore} to access your publications.",
+      "inputType": "default",
+      "fieldType": "textfield"
+    },
+    {
+      "isSecure": true,
+      "value": "",
+      "label": "Password",
+      "id": "password",
+      "height": 30,
+      "width": "100%",
+      "desc": "",
+      "inputType": "default",
+      "fieldType": "textfield"
+    },
+    {
+      "isSecure": false,
+      "value": "",
+      "label": "Email",
+      "id": "email",
+      "height": 30,
+      "width": "100%",
+      "desc": "",
+      "inputType": "email",
+      "fieldType": "textfield"
+    },
+    {
+      "isSecure": false,
+      "value": " ",
+      "label": "First Name",
+      "id": "firstname",
+      "height": 30,
+      "width": "100%",
+      "desc": "",
+      "inputType": "default",
+      "fieldType": "textfield"
+    },
+    {
+      "isSecure": false,
+      "value": "",
+      "label": "Last Name",
+      "id": "lastname",
+      "height": 30,
+      "width": "100%",
+      "desc": "",
+      "inputType": "default",
+      "fieldType": "textfield"
+    },
+    {
+      "isButton": true,
+      "functionName": "createAccount",
+      "label": "Create Account",
+      "id": "createAccount",
+      "height": 44,
+      "width": 250,
+      "xAlign" : "center",
+      "desc": ""
+    }
+  ],
+  "dialogTitle": "Create New Account",
+  "dialogBackgroundColor": "230,230,230,100%",
+  "dialogWindowMargins": "5%, 5%, 5%, 5%",
+  "dialogInnerMargins": "8%, 4%, 8%, 8%",
+  "dialogTextInputFieldXOffset": "20%",
+  "fieldLabelWidth": "20%",
+  "fieldDescWidth": "70%",
+  "lockCodeSize": 4
+}

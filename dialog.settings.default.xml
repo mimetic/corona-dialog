@@ -22,71 +22,25 @@
 
 	<class value="dialog">
 
-
-
-<!-- MOVE AFTER REAL VALUES FOR TESTING -->
-<!-- LOCALHOST TESTING -->
-
-
-				<!-- LOCALHOST TESTING -->
-				<!-- HTTP -->
-				<!-- Should NOT end with a slash! -->
-				<httpRemoteShelvesPath value="photobook/wordpress/wp-content/uploads/mb-shelves" />
-
-				<!-- Cannot start with http:// because we add username/password to the URL -->
-				<!-- do not end with slash -->
-				<httpShelvesServer value="localhost" />
-				<httpShelvesServerURL value="localhost/photobook/wordpress/wp-content/uploads/mb-shelves" />
-				<XhttpServerUsername value="digross"/>
-				<XhttpServerPassword value="nookie"/>
-
-				<!-- FTP -->
-				<serverhost value="localhost" />
-				<serveruser value="dgross" />
-				<serverpassword value="nookie" />
-
-				<remoteShelvesPath value="photobook/wordpress/wp-content/uploads/mb-shelves" />
-
-				<!-- unused-->
-				<remoteItemDatasetPath value="photobook/wordpress/wp-content/uploads/mb-shelves" />
-				<remoteListRowImagesURL value="http://localhost/photobook/wordpress/wp-content/uploads/mb-shelves" />
-
-				<!-- PUBLISHERS -->
-				<!-- HTTP -->
-				<!-- Should NOT end with a slash! -->
-				<httpRemotePublishersPath value="photobook/wordpress/wp-content/uploads/mb-publishers" />
-
-				<!-- Cannot start with http:// because we add username/password to the URL -->
-				<!-- do not end with slash -->
-				<httpPublishersServer value="localhost" />
-				<httpPublishersServerURL value="localhost/photobook/wordpress/wp-content/uploads/mb-publishers" />
-				<XhttpServerUsername value="digross"/>
-				<XhttpServerPassword value="nookie"/>
-
-				<remotePublishersPath value="photobook/wordpress/wp-content/uploads/mb-publishers" />
-
-				<!-- unused-->
-				<remoteItemDatasetPath value="photobook/wordpress/wp-content/uploads/mb-publishers" />
-				<remoteListRowImagesURL value="http://localhost/photobook/wordpress/wp-content/uploads/mb-publishers" />
-
-		
-		<!-- APP SETTINGS WINDOW -->
+		<!-- dims everything behind the dialog -->
+		<dimmerColor value="0,0,0,50%" />
 		
 		<msgDialogBookstore>You are connected to {bookstore}.</msgDialogBookstore>
 		<msgDialogSignin>To download your books from the bookstore, enter your username and password below:</msgDialogSignin>
 		<msgDialogChildLock>To lock books which are rated appropriate for 18+ years of age, enter a lock code below:</msgDialogChildLock>
+		<msgConfirmFieldDoesNotMatch>The confirmation does not match!</msgConfirmFieldDoesNotMatch>
 
 		<!-- margins are percent of width of screen: L,T,R,B -->
-		<dialogWindowMargins value="5%, 25%, 5%, 5%" />
-		<dialogInnerMargins value="8%, 8%, 8%, 8%" />
+		<dialogWindowMargins value="5%, 5%, 5%, 5%" />
+		<dialogInnerMargins value="8%, 4%, 8%, 8%" />
 		<dialogBackgroundColor value="230,230,230,100%" />
 		<dialogTextInputFieldsTop value="15%" />
 
 		<dialogFont value="Avenir-Light" />
-		<dialogFontSize value="18" />
 		<dialogFontColor value="100,100,100,100%" />
-		<dialogTextLineHeight value="24" />
-		<dialogTextSpaceAfter value="32" />
+		<dialogFontSize value="16" />
+		<dialogTextLineHeight value="20" />
+		<dialogTextSpaceAfter value="24" />
 		<dialogBlockSpacing value="40" />
 		<dialogInfoTextAlignment value="Center" />
 		
@@ -95,18 +49,26 @@
 		<dialogTitleFontSize value="24" />
 		<dialogTitleFontColor value="60,60,60,100%" />
 		
-		<dialogContentY value= "20%" />
+		<dialogContentY value= "12%" />
 		
 		<!-- we position these text fields from the left of the settings window -->
 		<dialogTextInputFieldXOffset value="10%" />
 		<fieldLabelWidth value="20%" />
 		<fieldDescWidth value="70%" />
+		<fieldTextColor value="0,0,0,100%" />
+		<fieldFrameBackground value="255,255,255,255" />
+		<fieldFrameStrokeColor value="220,220,220,100%" />
+		<fieldFrameStrokeWidth value="1" />
 		
 		<spaceAfterDesc value = "16" />
+		<buttonSpaceAfter value="20" />
 		
 		
 		<!-- lock code to prevent children from seeing 18+ rated books -->
 		<lockCodeSize value="4" />
+		
+		<showSubmitButton value="false" />
+		<showCancelButton value="true" />
 
 		<dialogButton value="_ui/button-gear-gray.png" />
 		<dialogButtonOver value="_ui/button-gear-gray-over.png" />

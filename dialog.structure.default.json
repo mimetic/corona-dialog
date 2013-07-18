@@ -1,7 +1,9 @@
 {
   "elements": [
     {
-      "desc": "You are connected to the bookstore {bookstore}.",
+      "isText": true,
+      "id": "store",
+      "text": "You are connected to the bookstore {bookstore}.",
       "style": "dialogLargeDescription"
     },
     {

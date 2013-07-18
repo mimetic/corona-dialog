@@ -1,0 +1,75 @@
+{
+  "elements": [
+    {
+      "isText": true,
+      "id": "store",
+      "text": "You are connected to the bookstore <span font='Avenir-Black'>{bookstore}.</span>",
+      "style": "dialogLargeDescription"
+    },
+    {
+      "isObject": true,
+      "isLine": true,
+      "color": "0,0,0,10%",
+      "height": "5%",
+      "width": 2
+    },
+    {
+      "isText": true,
+      "text": "You are signed in as <span font='Avenir-Black'>{username}</span> (<span font='Avenir-Black'>{displayname}</span>)",
+      "style": "dialogLargeDescription",
+      "condition": "signout"
+    },
+    {
+      "isText": true,
+      "text": "You are not signed in.",
+      "style": "dialogLargeDescription",
+      "y": "same",
+      "condition": "signin"
+    },
+    {
+      "isButton": true,
+      "functionName": "signOutUser",
+      "label": "Sign Out",
+      "id": "signOut",
+      "height": 44,
+      "width": 300,
+      "xAlign" : "center",
+      "desc": "",
+      "condition": "signout"
+    },
+    {
+      "isButton": true,
+      "functionName": "signInUser",
+      "label": "Sign In",
+      "id": "signIn",
+      "height": 44,
+      "width": 300,
+      "xAlign" : "center",
+      "desc": "",
+      "y": "same",
+      "condition": "signin"
+    },
+    {
+      "isButton": true,
+      "functionName": "createNewAccountDialog",
+      "label": "Create New Account",
+      "id": "createNewAccountDialog",
+      "height": 44,
+      "width": 300,
+      "xAlign" : "center",
+      "desc": "",
+      "condition": "signin"
+    }
+  ],
+  "conditions" : {
+     "signin": true,
+     "signout": false
+    },
+  "dialogBackgroundColor": "230,230,230,100%",
+  "dialogWindowMargins": "5%, 5%, 5%, 5%",
+  "dialogFontColor": "100,100,100,100%",
+  "dialogTitle": "Settings",
+  "dialogTextInputFieldXOffset": "25%",
+  "fieldLabelWidth": "23%",
+  "fieldDescWidth": "70%",
+}

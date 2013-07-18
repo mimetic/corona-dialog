@@ -2,157 +2,60 @@
 local storyboard = require "storyboard"
 storyboard.isDebug = true
 
--- This creates a new dialog
+-- This creates a dialog generator function
 local dialog = require ("dialog")
+local settings_gui = require("settings_gui")
 
-
-
-
---------------------------------------------------------------------------------
---------------------------------------------------------------------------------
---[[
-Wordpress connection
-
-Verify the user with WordPress
-
---]]
-
-local mb_api = require ("mb_api")
-
-
---------------------------------------------
-screenW, screenH = display.contentWidth, display.contentHeight
-viewableScreenW, viewableScreenH = display.viewableContentWidth, display.viewableContentHeight
-screenOffsetW, screenOffsetH = display.contentWidth -  display.viewableContentWidth, display.contentHeight - display.viewableContentHeight
-midscreenX = screenW*(0.5)
-midscreenY = screenH*(0.5)
-	
--- testing output:
-local outA = display.newText( "Output", 100, 20, screenW, screenH, "Helvetica", 18 )
-local outB = display.newText( "Output", 100, 40, screenW, screenH, "Helvetica", 18 )
-
-
-local function verify_user(results)
-
-		function onError(result)
-			print ("ERROR:")
-			funx.dump(result)
-		end
-
-		function onSuccess(result)
-			print ("onSuccess:")
-			funx.dump(result)
-	
-			local t = "status: " .. mb_api.result.status
-			outA.text = t
-
-			t = "displayname: " .. mb_api.result.user.displayname
-			outB.text = t
-		end
-
-	--------------------------------------------
-	local username = results.username
-	local password = results.password
-	local url = "http://localhost/photobook/wordpress/"
-	
-	mb_api.getUserInfo(url, username, password, onSuccess, onError)
-
-end
-
-
-
-
-local function cancelled(results)
-	funx.tellUser ("Cancelled")
-end
-
---------------------------------------------------------------------------------
---------------------------------------------------------------------------------
-
-
-
-
-------------------------------------------------
--- MUST have another scene around if you want to call an overlay, or it crashes!
-local scene = storyboard.newScene("main")
-
-local widget = require "widget"
-
-local function OpenDialogButtonRelease(event)
-	-- Show the dialog
-	dialog:show(event.target.id)
-end
-
-function scene:createScene( event )
-        local group = self.view
-
-        -----------------------------------------------------------------------------
-
-        -- Testing open button
-		local openButton = widget.newButton{
-			id = "login",
-			defaultFile = "_ui/button-gear-gray.png",
-			overFile = "_ui/button-gear-gray-over.png",
-			width = 44,
-			height = 44,
-			onRelease = OpenDialogButtonRelease,
-		}
-		group:insert(openButton)
-		openButton.x = 40
-		openButton.y = 40
-		openButton:toFront()
-
-        -----------------------------------------------------------------------------
-
-end
-scene:addEventListener( "createScene" )
-
--- the following event is dispatched once the overlay is in place
-function scene:overlayBegan( event )
-    --print( "Main scene says, showing overlay: " .. event.sceneName )
-end
-scene:addEventListener( "overlayBegan" )
-
--- the following event is dispatched once overlay is removed
-function scene:overlayEnded( event )
-    --print( "Main scene says, Overlay removed: " .. event.sceneName )
-	--funx.dump(storyboard.dialogResults)
-	--print( "----" )
-
-end
-scene:addEventListener( "overlayEnded" )
-
-storyboard.gotoScene("main")
---------------------------------------------
-
-
-local name = "login"
-
--- Options for the storyboard
-local options = {
-	effect = "fade",
-	time = 250,
-	isModal = true,
-}
-
--- Options for the dialog builder
-local params = {
-	name = name,
-	substitutions = {
+-- Local settings for an app, e.g. current user, etc.
+local system_settings = {
+	user = {
+		authorized = true,
+		username = "iggie",
+		password = "nookie",
+		displayname = "David Gross",
 		bookstore = "My Bookstore",
+		adultpassword = "abc",
 	},
-	paramsFileName = "dialog_saved_params",
-	dialogStructure = "dialog.structure.settings.json",
-	restoreValues = true,	-- restore previous results from disk
-	saveValues = true,	-- save the results to disk
-	onSubmitButton = verify_user, -- set this function or have another scene check storyboard.dialogResults
-	onCancelButton = cancelled, -- set this function or have another scene check storyboard.dialogResults
-	showSavedFeedback = false,	-- show "saved" if save succeeds
-	options = options,
+}
+
+system_settings = {
+	user = {
+		authorized = false,
+		username = "iggie",
+		password = "nookie",
+		displayname = "David Gross",
+		bookstore = "My Bookstore",
+		adultpassword = "abc",
+	},
 }
 
 
--- Creates a new dialog scene
-dialog.new(params)
+local function onUpdateSettings(values)
+	print ("Main: onUpdateSettings(values)")
+	funx.dump (values)
 
-dialog:show(name)
+	-- Things to do:
+
+
+	-- We can check for the status, or not. 
+	-- If we want 'cancel' to be a 'close', which is how iOS seems to do things,
+	-- we don't care what the status is. We assume, in iOS fashion, that all
+	-- changes are good changes. If you don't believe me, try the iOS System Settings
+	-- and see!
+	
+	-- To check status:
+	--[[
+	if (values.status == "ok") then
+		-- Save new settings to disk
+	else
+		-- do nothing, changes were cancelled or error happened
+	end
+	--]]
+end
+
+
+
+settings_gui.init(system_settings, onUpdateSettings)
+--settings_gui.showSettingsDialog()
+
+settings_gui.showDialog("signinDialog")

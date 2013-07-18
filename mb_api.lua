@@ -35,6 +35,14 @@
 
 ]]
 
+-------------------------------------------------
+-- url library, used for decode/encode
+-------------------------------------------------
+local url = require("socket.url")
+
+-------------------------------------------------
+-- functions library
+-------------------------------------------------
 require ("funx")
 
 local json = require( "json" )
@@ -43,12 +51,20 @@ local json = require( "json" )
 
 
 local app = { user = {} }
-app.wp_nonce = {}
+app.wp_nonce = { nonce = "" }
 app.wp_cookie = {}
 
 app.url = ""
 
 
+
+local function requestBody(params)   
+	local e = {}
+	for k, v in pairs(params) do
+		table.insert(e, k .. "=" .. url.escape(v))
+	end
+	return table.concat(e, "&")
+end
 
 ----------------
 -- Get nonce ID in the way the WordPress JSON API wants it
@@ -59,6 +75,31 @@ local function get_nonce_id(controller, method)
 	return "mb_api-" .. controller .. "-" .. method
 end
 --]]
+
+
+----------------
+-- Get current user information
+function app.validateUser()
+
+			local function networkListener( event )
+				if ( event.isError ) then
+					--print( "Network error!")
+					app.status = { status = "error", error = "Network error!", }
+					app.onError(app.status)
+				else
+					local data = json.decode(event.response)
+					app.result = data
+					app.callback(app.result)
+				end
+			end
+
+	local url = app.url
+	local postdata = "cookie="..app.wp_cookie
+
+	local params = { body = {}, }
+	params.body = postdata
+	network.request( url.."mb/user/validate_user", "POST", networkListener,  params)
+end
 
 
 ----------------
@@ -82,7 +123,34 @@ function app.getCurrentUserInfo()
 
 	local params = { body = {}, }
 	params.body = postdata
-	network.request( url.."mb/book/get_currentuser_info", "POST", networkListener,  params)
+	network.request( url.."mb/user/get_currentuser_info", "POST", networkListener,  params)
+end
+
+
+----------------
+-- Get current user information
+function app.registerUser()
+
+			local function networkListener( event )
+				if ( event.isError ) then
+					--print( "Network error!")
+					app.status = { status = "error", error = "Network error!", }
+					app.onError(app.status)
+				else
+					local data = json.decode(event.response)
+					app.result = data
+					app.callback(app.result)
+				end
+			end
+
+	local url = app.url
+	local postdata = "cookie="..app.wp_cookie
+
+	local params = { body = {}, }
+	app.params.cookie = app.wp_cookie
+	params.body = requestBody(app.params)
+	params.dev = "1" -- for developing
+	network.request( url.."mb/user/new_user", "POST", networkListener,  params)
 end
 
 
@@ -367,10 +435,23 @@ function app.getNonce(controller, method, nextFunction)
 					app.status = { status = "error", error = "Network error!", }
 					app.onError(app.status)
 				else
-					--print ( "RESPONSE to getNonce: " .. event.response )
+--print ( "RESPONSE to getNonce: " .. event.response )
 					local data = json.decode(event.response)
-					app.wp_nonce = data;
-					app.generateAuthCookie()
+					-- Failure may generate text, but not a table, right?
+					if (type(data) == "table") then					
+						app.wp_nonce = data;
+						if (app.wp_nonce and app.wp_nonce.nonce) then
+							app.generateAuthCookie()
+						else
+							-- ERROR
+							print ( "mb_api.lua: Error in response to getNonce request to ".. app.url .. " : " .. event.response )
+							app.onError(event.response)
+						end
+					else
+						-- ERROR
+						print ( "mb_api.lua: Error in response to getNonce request to ".. app.url .. " : " .. event.response )
+						app.onError(event.response)
+					end
 				end
 			end
 
@@ -399,6 +480,38 @@ function app.getUserInfo(url, username, password, onSuccess, onFailure)
 	local controller = "auth"
 	local method = "generate_auth_cookie"
 	local action = app.getCurrentUserInfo
+	local callback = onSuccess
+	local onerror = onError
+	app.access(url, username, password, controller, method, params, action, onSuccess, onFailure)
+end
+
+
+
+----------------
+-- Verify the current user exists
+-- A handy packaging of the validateUser.
+-- It calls onSuccess or onFailure as appropropriate.
+-- This is useful for "login".
+function app.validate_user(url, username, password, onSuccess, onFailure)
+
+	local params = {}
+	local controller = "auth"
+	local method = "generate_auth_cookie"
+	local action = app.validateUser
+	local callback = onSuccess
+	local onerror = onError
+	app.access(url, username, password, controller, method, params, action, onSuccess, onFailure)
+end
+
+
+----------------
+-- Create a new user
+-- A handy packaging of registerUser.
+-- It calls onSuccess or onFailure as appropropriate.
+function app.register_user(url, username, password, params, onSuccess, onFailure)
+	local controller = "auth"
+	local method = "generate_auth_cookie"
+	local action = app.registerUser
 	local callback = onSuccess
 	local onerror = onError
 	app.access(url, username, password, controller, method, params, action, onSuccess, onFailure)

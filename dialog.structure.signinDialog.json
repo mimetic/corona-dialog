@@ -1,0 +1,65 @@
+{
+  "elements": [
+    {
+     "isText": true,
+      "id": "store",
+     "text": "You are connected to the bookstore {bookstore}.",
+      "style": "dialogLargeDescription"
+    },
+    {
+      "isTextField": true,
+      "isSecure": false,
+      "value": "{username}",
+      "label": "Username",
+      "id": "username",
+      "height": 30,
+      "width": 300,
+      "desc": "Enter your username and password to access books from the bookstore.",
+      "inputType": "default",
+      "fieldType": "textfield"
+    },
+    {
+      "isTextField": true,
+      "isSecure": true,
+      "value": "{password}",
+      "label": "Password",
+      "id": "password",
+      "height": 30,
+      "width": 300,
+      "desc": "",
+      "inputType": "default",
+      "fieldType": "textfield"
+    },
+    {
+      "isButton": true,
+      "functionName": "signin",
+      "label": "Sign In",
+      "id": "signin",
+      "height": 44,
+      "width": 300,
+      "xAlign" : "center",
+      "desc": "",
+      "condition": "signin"
+    },
+    {
+      "isButton": true,
+      "functionName": "createNewAccountDialog",
+      "label": "Create New Account",
+      "id": "createNewAccountDialog",
+      "height": 44,
+      "width": 300,
+      "xAlign" : "center",
+      "desc": ""
+    }
+  ],
+  "conditions" : {
+     "signin": true,
+     "signout": false
+    },
+  "dialogTitle": "Sign In",
+  "dialogBackgroundColor": "230,230,230,100%",
+  "dialogTextInputFieldXOffset": "20%",
+  "fieldLabelWidth": "20%",
+  "fieldDescWidth": "70%",
+  "lockCodeSize": 4
+}
