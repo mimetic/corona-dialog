@@ -3,7 +3,7 @@
     {
      "isText": true,
       "id": "store",
-     "text": "You are connected to the bookstore {bookstore}.",
+     "text": "You are connected to the bookstore <span font='Avenir-Black'>{bookstore}.</span>",
       "style": "dialogLargeDescription"
     },
     {
@@ -29,6 +29,10 @@
       "desc": "",
       "inputType": "default",
       "fieldType": "textfield"
+    },
+    {
+      "isSpace": true,
+      "height": 30
     },
     {
       "isButton": true,

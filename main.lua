@@ -46,6 +46,10 @@ system_settings = {
 local scene = storyboard.newScene("main")
 local widget = require "widget"
 
+local settingsDialogName = "settingsDialog"
+local signInDialogName = "signinDialog"
+local newAccountDialogName = "createAccountDialog"
+
 function scene:createScene( event )
         local group = self.view
 
@@ -54,7 +58,7 @@ function scene:createScene( event )
 
 			--- Show a dialog based on a button id.
 			local function OpenDialogButtonRelease(event)
-				showDialog(event.target.id)
+				settings_gui.showDialog(event.target.id)
 			end
 
 

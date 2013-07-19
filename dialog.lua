@@ -642,7 +642,7 @@ function S.new(params)
 
 		if (fieldType == "textbox") then
 			-- Create the native textbox
-			textField = native.newTextBox( 0, 0, fieldWidth, h )
+			local textField = native.newTextBox( 0, 0, fieldWidth, h )
 			textField:setReturnKey('default')
 			textField.isEditable = true
 			textField:setReferencePoint(display.TopLeftReferencePoint)
@@ -662,7 +662,7 @@ function S.new(params)
 		else
 			-- Text Field
 			-- Create the native textfield
-			textField = native.newTextField( 0, 0, fieldWidth, fontsize * 2 )
+			local textField = native.newTextField( 0, 0, fieldWidth, fontsize * 2 )
 			textField:setReturnKey('next')
 			textField:setReferencePoint(display.TopLeftReferencePoint)
 			textField.x = xScreen
@@ -701,12 +701,12 @@ function S.new(params)
 			innermargins[#innermargins+1] = funx.applyPercent(v, backgroundWidth)
 		end
 
-		-- Positioning Rect
-		local r = display.newRect(g, 0, 0, 0,0 )
-		r:setReferencePoint(display.TopLeftReferencePoint)
-		r.x = 0
-		r.y = 0
-		r:setFillColor(0,0,0,100)
+		-- A positioning obj for this group, to maintain the top.
+		local headerRect = display.newRect(g, 0, 0, 0, 0)
+		headerRect:setReferencePoint(display.TopLeftReferencePoint)
+		headerRect.x = 0
+		headerRect.y = 0
+		headerRect:setFillColor(255,255,255,250)
 
 		local linespace = funx.applyPercent(dialogDefinition.dialogTextLineHeight or settings.dialog.dialogTextLineHeight, screenH)
 		local spaceafter = funx.applyPercent(dialogDefinition.dialogTextSpaceAfter or settings.dialog.dialogTextSpaceAfter, screenH)
@@ -714,7 +714,7 @@ function S.new(params)
 
 		-- X to left margin
 		x = innermargins[1]
-
+		
 		-- fieldX is the x position of a text field from the left inner margin.
 		-- Note, can be percent of background width, not screen width
 		local fieldX = innermargins[1] + funx.applyPercent(dialogDefinition.dialogTextInputFieldXOffset or settings.dialog.dialogTextInputFieldXOffset, backgroundWidth - (innermargins[1]+innermargins[3]) )
@@ -794,6 +794,13 @@ function S.new(params)
 				end
 				elements.objects[f.id] = thisElement
 				y = y + hh
+			elseif (f.isSpace) then
+				x = innermargins[1]
+
+				local hh = (funx.applyPercent(f.height, screenH) or 0)/2
+				thisElement = display.newGroup()
+				y = y + hh
+				elements.objects[f.id] = thisElement
 			else
 				-- Make a text input field
 				local style = f.style or "dialogDescription"
@@ -870,6 +877,24 @@ function S.new(params)
 		r.x = 0
 		r.y = 0
 
+		-- Header background, also serves as a positioning obj for this group, to maintain
+		-- the top.
+		local headerRect = display.newRoundedRect(g, 0, 0, w,settings.dialog.headerHeight, settings.dialog.cornerRadius )
+		headerRect:setReferencePoint(display.TopLeftReferencePoint)
+		headerRect.x = 0
+		headerRect.y = 0
+		local color = funx.stringToColorTable (settings.dialog.headerBackground or "255,255,255,100%" )
+		headerRect:setFillColor(color[1], color[2], color[3], color[4])
+		headerRect:toBack()
+		-- A normal rect to unround the bottom corners
+		local fixCornersRect = display.newRect(g, 0, 0, w, settings.dialog.cornerRadius )
+		fixCornersRect:setReferencePoint(display.TopLeftReferencePoint)
+		fixCornersRect.x = 0
+		fixCornersRect.y = headerRect.height - settings.dialog.cornerRadius
+		fixCornersRect:setFillColor(color[1], color[2], color[3], color[4])
+		fixCornersRect:toBack()
+
+
 		-- a string in the form, L,T,R,B
 		local innermargins = {}
 		local im = dialogDefinition.dialogInnerMargins or settings.dialog.dialogInnerMargins
@@ -941,12 +966,30 @@ function S.new(params)
 			end
 
 			local backgroundColor = dialogDefinition.dialogBackgroundColor or settings.dialog.dialogBackgroundColor
-			local rrectCorners = 10
+			local rrectCorners = settings.dialog.cornerRadius
 
-			-- BACKGROUND + CLOSE BUTTON + CANCEL BUTTON
+
+			local x,y
+
+			bkgd:setReferencePoint( display.CenterReferencePoint )
+
+			-- BACKGROUND Rounded Rect
 			local r = display.newRoundedRect(bkgd, margins[1], margins[2], screenW - margins[1] - margins[3],screenH - margins[2] - margins[4], rrectCorners, rrectCorners)
 			local color = funx.stringToColorTable (backgroundColor)
 			r:setFillColor(color[1], color[2], color[3], color[4])
+			bkgd.background = r
+			r:setReferencePoint( display.TopCenterReferencePoint )
+			r.y = margins[1]
+
+			-- Background elements, such as backgrounds, title, fixed buttons
+			local dialogBackgroundElements = buildBackgroundElements(bkgd.width, bkgd.height, dialogDefinition)
+			bkgd:insert(dialogBackgroundElements)
+			bkgd.dialogBackgroundElements = dialogBackgroundElements
+			dialogBackgroundElements:setReferencePoint( display.TopCenterReferencePoint )
+
+			dialogBackgroundElements.x = r.x
+			dialogBackgroundElements.y = r.y
+
 
 			local bkgdWidth = r.width
 			local bkgdHeight = r.height
@@ -954,7 +997,8 @@ function S.new(params)
 			local xOffset = 0
 			local padding = 20
 
-			bkgd.rect = r
+
+			-- CLOSE BUTTON + CANCEL BUTTON
 
 			-- Submit button - same as "OK"
 			if (settings.dialog.showSubmitButton) then
@@ -1017,6 +1061,7 @@ function S.new(params)
 		else
 			print ("ERROR: Missing dialog structure for " .. filename)
 		end -- if dialogstructure
+		
 	end
 
 
@@ -1029,14 +1074,12 @@ function S.new(params)
 		-- Structure of dialog was read into 'dialogDefinition' in 'create'
 		if (dialogDefinition) then
 
-			local x = 0
-			local y = 0
-			local t = ""
-			local tblock = {}
+			local x,y
 
 			local bkgd = group.bkgd
 			bkgd:setReferencePoint( display.CenterReferencePoint )
 
+--[[
 			-- Background elements, such as backgrounds, title, fixed buttons
 			local dialogBackgroundElements = buildBackgroundElements(bkgd.width, bkgd.height, dialogDefinition)
 			group:insert(dialogBackgroundElements)
@@ -1045,7 +1088,7 @@ function S.new(params)
 
 			dialogBackgroundElements.x = bkgd.x
 			dialogBackgroundElements.y = bkgd.y
-
+--]]
 			-- a string in the form, L,T,R,B
 			local margins = {}
 			for i,v in pairs(funx.split(dialogDefinition.dialogWindowMargins or settings.dialog.dialogWindowMargins)) do
@@ -1060,7 +1103,7 @@ function S.new(params)
 			local blockspace = funx.applyPercent(dialogDefinition.dialogBlockSpacing or dialogDefinition.dialogBlockSpacing or settings.dialog.dialogBlockSpacing, screenH)
 			local spaceafter = funx.applyPercent(dialogDefinition.dialogTextSpaceAfter or dialogDefinition.dialogTextSpaceAfter or settings.dialog.dialogTextSpaceAfter, screenH)
 			local blockwidth =  bkgd.width - innermargins[2] - innermargins[4]
-			local contentY = funx.applyPercent(dialogDefinition.dialogContentY or dialogDefinition.dialogContentY or settings.dialog.dialogContentY, dialogBackgroundElements.height)
+			local contentY = funx.applyPercent(dialogDefinition.dialogContentY or dialogDefinition.dialogContentY or settings.dialog.dialogContentY, screenH)
 
 			-- INFO TEXT
 			-- Info, e.g. connected to which website...
@@ -1137,6 +1180,13 @@ function S.new(params)
 			S.window[windowName].didExitScene = false
 			S.window[windowName].destroyScene = false
 			S.window[windowName].exists = true
+
+			-- resize the background rect of the dialog to fit			
+			local  y = bkgd.background.y
+			bkgd.background.height = dialogElementsGroup.contentHeight + innermargins[3]
+			bkgd.background:setReferencePoint(display.TopLeftReferencePoint)
+			bkgd.background.y = y
+
 
 		end	-- end if dialog definition
 
@@ -1251,8 +1301,8 @@ function S.new(params)
 		-----------------------------------------------------------------------------
 
 		-- Remove the fixed settings elements, since these might change and are rebuilt each time.
-		group.dialogBackgroundElements:removeSelf()
-		group.dialogBackgroundElements = nil
+		--group.dialogBackgroundElements:removeSelf()
+		--group.dialogBackgroundElements = nil
 
 		group.elements:removeSelf()
 		group.elements = nil

@@ -3,7 +3,7 @@
     {
       "isText": true,
       "id": "store",
-      "text": "This app is connected to {bookstore}.",
+      "text": "This app is connected to <span font='Avenir-Black'>{bookstore}.</span>",
       "style": "dialogLargeDescription"
     },
     {
@@ -13,7 +13,7 @@
       "id": "username",
       "height": 30,
       "width": "100%",
-      "desc": "Sign up for a new account with {bookstore} to access your publications.",
+      "desc": "Sign up for a new account with <span font='Avenir-Black'>{bookstore}.</span> to access your publications.",
       "inputType": "default",
       "fieldType": "textfield"
     },
@@ -62,6 +62,10 @@
       "fieldType": "textfield"
     },
     {
+      "isSpace": true,
+      "height": 30
+    },
+    {
       "isButton": true,
       "functionName": "createAccount",
       "label": "Create Account",
@@ -73,9 +77,6 @@
     }
   ],
   "dialogTitle": "Create New Account",
-  "dialogBackgroundColor": "230,230,230,100%",
-  "dialogWindowMargins": "5%, 5%, 5%, 5%",
-  "dialogInnerMargins": "8%, 4%, 8%, 8%",
   "dialogTextInputFieldXOffset": "20%",
   "fieldLabelWidth": "20%",
   "fieldDescWidth": "70%",
