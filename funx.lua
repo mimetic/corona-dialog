@@ -167,10 +167,8 @@ function substitutions (s, t)
 	for w in r do
 		local i,j = string.find(w, "{(.-)}")
 		local k = string.sub(w,i+1,j-1)
---print ("found {"..k.."} ")
-		if (t[k] ~= nil) then
+		if (t[k]) then
 			res = string.gsub(res, "{"..k.."}", t[k])
---print ("replaced {"..k.."} with "..t[k])
 		end
 		--print (res)
 	end
@@ -3702,7 +3700,7 @@ function checksum(str)
    temp = 11 - (temp % 11)
    if temp == 10 then
       return "X"
-   else
+   else 
       if temp == 11 then
          return "0"
       else

@@ -9,8 +9,7 @@ local midscreenY = screenH*(0.5)
 local storyboard = require "storyboard"
 storyboard.isDebug = true
 
--- This creates a dialog generator function
-local dialog = require ("dialog")
+-- This is the specialized module to handle the app settings GUI
 local settings_gui = require("settings_gui")
 
 -- Local settings for an app, e.g. current user, etc.
