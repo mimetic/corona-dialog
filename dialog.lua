@@ -565,7 +565,7 @@ function S.new(params)
 
 		local linespace = funx.applyPercent(dialogDefinition.dialogTextLineHeight or settings.dialog.dialogTextLineHeight, screenH)
 		local spaceafter = funx.applyPercent(dialogDefinition.dialogTextSpaceAfter or settings.dialog.dialogTextSpaceAfter, screenH)
-		
+
 		-- Write the description
 		local descText = ""
 		desc = desc or ""
@@ -586,7 +586,7 @@ function S.new(params)
 			descText.y = y + descText.yAdjustment
 			y = y + descText.height + funx.applyPercent(dialogDefinition.spaceAfterDesc or settings.dialog.spaceAfterDesc, screenH)
 		end
-		
+
 		local font = dialogDefinition.dialogFont or settings.dialog.dialogFont
 		local fontsize = dialogDefinition.dialogFontSize or settings.dialog.dialogFontSize
 		-- Write the label
@@ -613,7 +613,7 @@ function S.new(params)
 		local maxWidth = g.width - fieldX - innermargins[3]
 		local fieldWidth = funx.applyPercent(w, g.width - (innermargins[1] + innermargins[3]) )
 		local fieldWidth = math.min(fieldWidth,maxWidth)
-		
+
 		-- Make a box to show where the textfield is.
 		-- If the dialog slides in, this is good because the text field could be show AFTER
 		-- the dialog is drawn, and it will appear as if the fields were there all along.
@@ -637,7 +637,7 @@ function S.new(params)
 		-- you'll find this won't work! If we position the fields BEFORE moving the
 		-- dialog on screen, say because we are sliding in from the side, then positioning
 		-- won't work!
-		
+
 		local xScreen, yScreen = fieldX + margins[1], y + margins[2]
 
 		if (fieldType == "textbox") then
@@ -811,7 +811,7 @@ function S.new(params)
 			-- the structure should indicate the y-position????
 
 			thisElement.isVisible = showElement
-			
+
 			thisElement.showElement = showElement
 			thisElement.condition = f.condition
 
@@ -1107,7 +1107,6 @@ function S.new(params)
 				f.label = funx.substitutions (f.label, subs)
 				f.desc = funx.substitutions (f.desc, subs)
 				f.text = funx.substitutions (f.text, subs)
-print ("fields[f.id]",f.id, fields[f.id])
 				if (fields[f.id] and fields[f.id] ~= "") then
 					f.value = funx.substitutions(fields[f.id], subs)
 				else
@@ -1155,10 +1154,10 @@ print ("fields[f.id]",f.id, fields[f.id])
 		-- is not available after this point.
 		group.params = params
 		-----------------------------------------------------------------------------
-		
+
 		-- FOLLOWING DOES NOT WORK: NATIVE OBJECTS CAN'T BE HIDDEN.
 		-- WE WILL HAVE TO BUILD THEM HERE, AND THAT CAN WAIT.
-		
+
 		--[[
 		-- Show/Hide text fields and text boxes.
 		-- Do AFTER everything else has loaded, or a transition (like a slideLeft) will
@@ -1173,8 +1172,8 @@ print ("fields[f.id]",f.id, fields[f.id])
 			end
 
 		end -- for
-		
-		
+
+
 		-- THIS IS NOT YET MODIFIED FOR THIS SECTION, JUST COPIED FROM ABOVE
 		-- Add in values from params and existing data
 			local subs = funx.tableMerge(params.substitutions, fields)
@@ -1239,7 +1238,9 @@ print ("fields[f.id]",f.id, fields[f.id])
 			end
 		end
 
-
+		-- Clear the flags
+		S.window[windowName].status.submit = false
+		S.window[windowName].status.cancel = false
 	end
 
 
@@ -1319,26 +1320,36 @@ end -- new()
 
 ---------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------
-function S:showWindow(name)
-	local window = self.window[name]
+function S:showWindow(windowName, values, conditions)
+	local window = self.window[windowName]
 
 	-- Must call a 'new' before calling showWindow!
 	if (not window) then
 		return false
 	end
 
+	-- update the params.values
+	if (values) then
+		S.window[windowName].params.substitutions = funx.tableMerge(S.window[windowName].params.substitutions, values)
+	end
+
+	-- update the conditions
+	if (conditions) then
+		S.window[windowName].params.conditions = conditions
+	end
+
 	-- If the storyboard scene doesn't exist, we need to create it.
 	-- This could happen if the scene were 'destroyed', esp. if the
 	-- dialog is modal.
-	if (not storyboard.scenes[name]) then
+	if (not storyboard.scenes[windowName]) then
 		S.new(window.params)
 	end
 
 
 	if (window.params.isModal) then
-		storyboard.showOverlay( name, window.params.options )
+		storyboard.showOverlay( windowName, window.params.options )
 	else
-		storyboard.gotoScene( name, window.params.options )
+		storyboard.gotoScene( windowName, window.params.options )
 	end
 end -- show()
 

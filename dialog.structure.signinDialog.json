@@ -9,7 +9,7 @@
     {
       "isTextField": true,
       "isSecure": false,
-      "value": "{username}",
+      "value": "",
       "label": "Username",
       "id": "username",
       "height": 30,
@@ -21,7 +21,7 @@
     {
       "isTextField": true,
       "isSecure": true,
-      "value": "{password}",
+      "value": "",
       "label": "Password",
       "id": "password",
       "height": 30,

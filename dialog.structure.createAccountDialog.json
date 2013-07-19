@@ -8,7 +8,7 @@
     },
     {
       "isSecure": false,
-      "value": "???",
+      "value": "",
       "label": "Username",
       "id": "username",
       "height": 30,

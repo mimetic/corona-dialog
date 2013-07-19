@@ -1,3 +1,10 @@
+--------------------------------------------
+local screenW, screenH = display.contentWidth, display.contentHeight
+local viewableScreenW, viewableScreenH = display.viewableContentWidth, display.viewableContentHeight
+local screenOffsetW, screenOffsetH = display.contentWidth -  display.viewableContentWidth, display.contentHeight - display.viewableContentHeight
+local midscreenX = screenW*(0.5)
+local midscreenY = screenH*(0.5)
+
 
 local storyboard = require "storyboard"
 storyboard.isDebug = true
@@ -28,6 +35,105 @@ system_settings = {
 		adultpassword = "abc",
 	},
 }
+
+
+
+
+
+
+-- THIS IS FOR TESTING:
+------------------------------------------------
+local scene = storyboard.newScene("main")
+local widget = require "widget"
+
+function scene:createScene( event )
+        local group = self.view
+
+        -----------------------------------------------------------------------------
+		local r = display.newRect(group, 0,0,screenW,screenH)
+
+			--- Show a dialog based on a button id.
+			local function OpenDialogButtonRelease(event)
+				showDialog(event.target.id)
+			end
+
+
+
+
+        -- Testing open dialog #1 button
+		local openButton = widget.newButton{
+			id = signInDialogName,
+			defaultFile = "_ui/button-gear-gray.png",
+			overFile = "_ui/button-gear-gray-over.png",
+			width = 44,
+			height = 44,
+			onRelease = OpenDialogButtonRelease,
+		}
+		group:insert(openButton)
+		openButton.x = 40
+		openButton.y = 80
+		openButton:toFront()
+
+        -- Testing open dialog #2 button
+		local openButtonB = widget.newButton{
+			id = newAccountDialogName,
+			defaultFile = "_ui/button-gear-gray.png",
+			overFile = "_ui/button-gear-gray-over.png",
+			width = 44,
+			height = 44,
+			onRelease = OpenDialogButtonRelease,
+		}
+		group:insert(openButtonB)
+		openButtonB.x = 100
+		openButtonB.y = 80
+		openButtonB:toFront()
+		openButtonB:setFillColor( 250,50,50, 250 )
+
+
+        -- Testing open dialog #2 button
+		local openButtonC = widget.newButton{
+			id = settingsDialogName,
+			defaultFile = "_ui/button-gear-gray.png",
+			overFile = "_ui/button-gear-gray-over.png",
+			width = 44,
+			height = 44,
+			onRelease = OpenDialogButtonRelease,
+		}
+		group:insert(openButtonC)
+		openButtonC.x = 160
+		openButtonC.y = 80
+		openButtonC:toFront()
+		openButtonC:setFillColor( 50,50,250, 250 )
+
+
+
+        -----------------------------------------------------------------------------
+
+end
+scene:addEventListener( "createScene" )
+
+-- the following event is dispatched once the overlay is in place
+function scene:overlayBegan( event )
+    --print( "Main scene says, showing overlay: " .. event.sceneName )
+end
+scene:addEventListener( "overlayBegan" )
+
+-- the following event is dispatched once overlay is removed
+function scene:overlayEnded( event )
+    --print( "Main scene says, Overlay removed: " .. event.sceneName )
+	--funx.dump(storyboard.dialogResults)
+	--print( "----" )
+
+end
+scene:addEventListener( "overlayEnded" )
+
+storyboard.gotoScene("main")
+--------------------------------------------
+
+
+
+
+
 
 
 local function onUpdateSettings(values)

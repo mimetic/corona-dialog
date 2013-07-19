@@ -273,6 +273,25 @@ local function verify_user(results)
 end
 
 
+--------------------------------------------------------------------------------
+-- Shortcut functions
+
+--- Shortcut to show sign-in dialog
+local function showSignInUserDialog()
+	showDialog(signInDialogName)
+end
+
+--- Shortcut to show the create-new-account dialog
+local function openCreateNewAccountDialog()
+	showDialog(newAccountDialogName)
+end
+
+
+
+--- Show the create new account dialog
+local function confirmAccount(results)
+	return verify_user(results)
+end
 
 --------------------------------------------------------------------------------
 -- If the user exists, update new info about the user taken from the WP website.
@@ -311,9 +330,9 @@ local function createNewAccount(results)
 				dialog:addValuesToDocuments(signInDialogName, newvalues, showSavedFeedback)
 
 				-- Add values to the main 'values' table
-				M.values = funx.tableMerge(M.values.user, newvalues)
+				M.values.user = funx.tableMerge(M.values.user, newvalues)
 
-				dialog.closeDialog()
+				showSignInUserDialog()
 				return true
 			end
 		end
@@ -326,7 +345,7 @@ local function createNewAccount(results)
 	local url = "http://localhost/photobook/wordpress/"
 
 	mb_api.register_user(url, username, password, results, onSuccess, onError)
-	return true
+	return false
 end
 
 
@@ -335,119 +354,6 @@ end
 local function cancelled(results)
 	funx.tellUser ("Cancelled")
 end
-
---------------------------------------------------------------------------------
---------------------------------------------------------------------------------
-
-
-
-
-------------------------------------------------
--- MUST have another scene around if you want to call an overlay, or it crashes!
-local scene = storyboard.newScene("main")
-
-local widget = require "widget"
-
-local function OpenDialogButtonRelease(event)
-	showDialog(event.target.id)
-end
-
-
--- Show the create new account dialog
-local function openCreateNewAccountDialog()
-	showDialog(newAccountDialogName)
-end
-
-
-
--- Show the create new account dialog
-local function confirmAccount(results)
-	return verify_user(results)
-end
-
-
-
-
--- THIS IS FOR TESTING:
-
-function scene:createScene( event )
-        local group = self.view
-
-        -----------------------------------------------------------------------------
-		local r = display.newRect(group, 0,0,screenW,screenH)
-
-
-
-        -- Testing open dialog #1 button
-		local openButton = widget.newButton{
-			id = signInDialogName,
-			defaultFile = "_ui/button-gear-gray.png",
-			overFile = "_ui/button-gear-gray-over.png",
-			width = 44,
-			height = 44,
-			onRelease = OpenDialogButtonRelease,
-		}
-		group:insert(openButton)
-		openButton.x = 40
-		openButton.y = 80
-		openButton:toFront()
-
-        -- Testing open dialog #2 button
-		local openButtonB = widget.newButton{
-			id = newAccountDialogName,
-			defaultFile = "_ui/button-gear-gray.png",
-			overFile = "_ui/button-gear-gray-over.png",
-			width = 44,
-			height = 44,
-			onRelease = OpenDialogButtonRelease,
-		}
-		group:insert(openButtonB)
-		openButtonB.x = 100
-		openButtonB.y = 80
-		openButtonB:toFront()
-		openButtonB:setFillColor( 250,50,50, 250 )
-
-
-        -- Testing open dialog #2 button
-		local openButtonC = widget.newButton{
-			id = settingsDialogName,
-			defaultFile = "_ui/button-gear-gray.png",
-			overFile = "_ui/button-gear-gray-over.png",
-			width = 44,
-			height = 44,
-			onRelease = OpenDialogButtonRelease,
-		}
-		group:insert(openButtonC)
-		openButtonC.x = 160
-		openButtonC.y = 80
-		openButtonC:toFront()
-		openButtonC:setFillColor( 50,50,250, 250 )
-
-
-
-        -----------------------------------------------------------------------------
-
-end
-scene:addEventListener( "createScene" )
-
--- the following event is dispatched once the overlay is in place
-function scene:overlayBegan( event )
-    --print( "Main scene says, showing overlay: " .. event.sceneName )
-end
-scene:addEventListener( "overlayBegan" )
-
--- the following event is dispatched once overlay is removed
-function scene:overlayEnded( event )
-    --print( "Main scene says, Overlay removed: " .. event.sceneName )
-	--funx.dump(storyboard.dialogResults)
-	--print( "----" )
-
-end
-scene:addEventListener( "overlayEnded" )
-
-storyboard.gotoScene("main")
---------------------------------------------
-
 
 
 ------------------------------------------------------------------------
@@ -467,9 +373,9 @@ local function createSignInDialog(dialogName)
 	local params = {
 		name = dialogName,
 		substitutions = M.values.user,
-		restoreValues = true,	-- restore previous results from disk
-		writeValues = true,	-- save the results to disk
-		onSubmitButton = verify_user, -- set this function or have another scene check storyboard.dialogResults
+		restoreValues = false,	-- restore previous results from disk
+		writeValues = false,	-- save the results to disk
+		onSubmitButton = nil, -- set this function or have another scene check storyboard.dialogResults
 		--onCancelButton = showSettingsDialog, -- set this function or have another scene check storyboard.dialogResults
 		cancelToSceneName = settingsDialogName,
 		showSavedFeedback = false,	-- show "saved" if save succeeds
@@ -497,16 +403,6 @@ end
 
 
 
-local function showSignInUserDialog()
-	setConditions(signInDialogName)
-	updateDialogParams(signInDialogName)
-	dialog:showWindow(signInDialogName)
-end
-
-
-
-
-
 
 ------------------------------------------------------------------------
 --- Create New account dialog
@@ -520,7 +416,11 @@ local function createNewAccountDialog(dialogName)
 	local function onSuccess(results)
 		print ("createNewAccountDialog:onSuccess: ")
 		funx.dump(results)
-		showSignInUserDialog(results)
+		showSignInUserDialog()
+	end
+	
+	local function onFailure(results)
+		funx.tellUser("Error: Probably a network connection error.")
 	end
 
 	local options = {
@@ -535,7 +435,6 @@ local function createNewAccountDialog(dialogName)
 		substitutions = M.values.user,
 		restoreValues = true,	-- restore previous results from disk
 		writeValues = true,	-- save the results to disk
-		storeValues = true,	-- save the results to disk
 		onSubmitButton = nil, -- set this function or have another scene check storyboard.dialogResults
 		--onCancelButton = showSettingsDialog, -- set this function or have another scene check storyboard.dialogResults
 		cancelToSceneName = settingsDialogName,
@@ -545,7 +444,7 @@ local function createNewAccountDialog(dialogName)
 		functions = {
 			createAccount = {
 				action = createNewAccount,
-				success = onSuccess,
+				success = nil,
 				failure = nil,
 			},
 		},
@@ -621,8 +520,8 @@ local function createSettingsDialog(callback)
 	local params = {
 		name = settingsDialogName,
 		substitutions = M.values.user,
-		restoreValues = true,	-- restore previous results from disk
-		writeValues = true,	-- save the results to disk
+		restoreValues = false,	-- restore previous results from disk
+		writeValues = false,	-- save the results to disk
 		onSubmitButton = onCompletion, -- set this function or have another scene check storyboard.dialogResults
 		onCancelButton = onCompletion, -- set this function or have another scene check storyboard.dialogResults
 		cancelToSceneName = storyboard.getCurrentSceneName(), -- cancel to the scene that called this dialog
