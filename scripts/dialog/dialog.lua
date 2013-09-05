@@ -64,7 +64,7 @@ Input Types in the structure:
 
 local S = { window = {} };
 
-
+local pathToModule = "scripts/dialog/"
 
 local widget = require "widget"
 local settingsLib = require("settings")
@@ -77,7 +77,7 @@ local storyboard = require "storyboard"
 local DIALOG_VALUES_FILE = "dialog.values.json"
 
 -- Get dialog module default settings
-S.settings = settingsLib.new("dialog.settings.default.xml", system.ResourceDirectory)
+S.settings = settingsLib.new(pathToModule.."dialog.settings.default.xml", system.ResourceDirectory)
 
 -------------------------------------------------
 -- Load text formatting styles used by funx.lua text formatting
@@ -85,7 +85,7 @@ S.settings = settingsLib.new("dialog.settings.default.xml", system.ResourceDirec
 -- Merge User and System styles, where user replace system
 -------------------------------------------------
 
-local systemTextStyles = funx.loadTextStyles("dialog.textstyles.txt", system.ResourceDirectory) or {}
+local systemTextStyles = funx.loadTextStyles(pathToModule.."dialog.textstyles.txt", system.ResourceDirectory) or {}
 local userTextStyles = {}
 local p = "_user/textstyles.txt"
 if (funx.fileExists(p, system.ResourceDirectory)) then
@@ -950,9 +950,9 @@ function S.new(params)
 		-- The structure of the dialog is a JSON file in the system folder
 		local filename
 		if (windowName) then
-			filename = "dialog.structure." .. funx.trim(windowName) .. ".json"
+			filename = pathToModule.."dialogs/dialog.structure." .. funx.trim(windowName) .. ".json"
 		else
-			filename = "dialog.structure.default.json"
+			filename = pathToModule.."dialogs/dialog.structure.default.json"
 		end
 
 		-- Get and store the dialog definition

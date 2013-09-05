@@ -24,9 +24,10 @@
 
 --]]
 
-
 --module table
 local M = {}
+
+local pathToModule = "scripts/dialog/"
 
 -- Local settings for an app, e.g. current user, etc.
 M.values = {}
@@ -35,7 +36,7 @@ local storyboard = require "storyboard"
 storyboard.isDebug = true
 
 -- This creates a dialog generator function
-local dialog = require ("dialog")
+local dialog = require ("scripts.dialog.dialog")
 
 -- Be CAREFUL not to use names of existing lua files, e.g. settings.lua unless you mean it!!!
 local settingsDialogName = "settingsDialog"

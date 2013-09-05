@@ -10,7 +10,7 @@ local storyboard = require "storyboard"
 storyboard.isDebug = true
 
 -- This is the specialized module to handle the app settings GUI
-local settings_gui = require("settings_gui")
+local settings_gui = require("scripts.dialog.settings_gui")
 
 -- Local settings for an app, e.g. current user, etc.
 local system_settings = {
