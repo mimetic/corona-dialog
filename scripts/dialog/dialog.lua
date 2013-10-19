@@ -34,6 +34,8 @@
 
 	local dialog = require("dialog")
 
+WRONG: OUT OF DATE, FIX THIS:
+
 	local name = "MyDialog"
 	dialog.new(name) 	: creates a new storyboard scene which is a dialog
 	dialog:show(name)	: show the dialog
@@ -42,7 +44,7 @@
 	The dialog table structure:
 	dialog.window = {
 		params = {},	-- save the setup params including storyboard options
-		status = {},	-- the status includes flags, such as writeValues
+		windowStatus = {},	-- the windowStatus includes flags, such as writeValues
 		results = {},	-- the results of the dialog, i.e. the data
 	}
 
@@ -58,6 +60,10 @@ Input Types in the structure:
 	"phone" a keypad for entering phone numbers
 	"url" a keyboard for entering website URLs
 	"email" a keyboard for entering email addresses
+
+	Can use:
+	"y" = "same"
+	"buttonType" = "close" or "cancel"
 
 
 --]]
@@ -127,7 +133,7 @@ end
 
 function S.closeDialog(windowname)
 	local windowName = windowname or storyboard.getCurrentSceneName()
-	S.window[windowname].status =  {
+	S.window[windowname].windowStatus =  {
 		cancel = false,
 		submit = true,
 	}
@@ -137,6 +143,9 @@ function S.closeDialog(windowname)
 		local previous_scene_name = S.window[windowname].params.cancelToSceneName or storyboard.getPrevious()
 		if (previous_scene_name) then
 			storyboard.gotoScene(previous_scene_name, S.window[windowname].params.options)
+		else
+			-- If there is no previous, go to the blank scene!
+			storyboard.gotoScene("blank", S.window[windowname].params.options)
 		end
 	end
 	return true
@@ -158,8 +167,8 @@ end
 
 local function cancelDialogButtonRelease(event)
 	local windowname = event.target.id
-	S.window[windowname].status.cancel = true
-	S.window[windowname].status.submit = false
+	S.window[windowname].windowStatus.cancel = true
+	S.window[windowname].windowStatus.submit = false
 	if (S.window[windowname].params.isModal) then
 		storyboard.hideOverlay("fade", 500)
 	else
@@ -288,8 +297,18 @@ end
 function S:makeTextBlock(windowName, params)
 	local windowName = windowName or storyboard.getCurrentSceneName()
 	local window = self.window[windowName]
+	local margins = S.window[windowName].margins
+	local innermargins = S.window[windowName].innermargins
+
 	-- Write the description
-	-- Note, width can be percent of background (g object) width, not screen width
+	local width
+	if (window.dialogDefinition.fieldDescWidth or self.settings.dialog.fieldDescWidth) then
+		-- Note, width can be percent of background (g object) width, not screen width
+		width = funx.applyPercent(window.dialogDefinition.fieldDescWidth or self.settings.dialog.fieldDescWidth, params.width)
+	else
+		width = params.width - innermargins.left - innermargins.right
+	end
+
 	local textblock = ""
 	params.text = params.text or ""
 	if (params.text ~= "") then
@@ -297,7 +316,8 @@ function S:makeTextBlock(windowName, params)
 			text = params.text,
 			font = window.dialogDefinition.dialogDescFont or self.settings.dialog.dialogDescFont,
 			size = window.dialogDefinition.dialogDescFontSize or self.settings.dialog.dialogDescFontSize,
-			width = funx.applyPercent(window.dialogDefinition.fieldDescWidth or self.settings.dialog.fieldDescWidth, params.width),
+			width = width,
+
 			textstyles = self.textstyles,
 			defaultStyle = params.style or "dialogDescription",
 			cacheDir = "",
@@ -347,7 +367,7 @@ function S:makeButton(windowName, params)
 	local windowName = windowName or storyboard.getCurrentSceneName()
 	local window = self.window[windowName]
 
-	-- innermargins: L,T,R,B
+	-- innermargins: T,L,B,R
 
 	-- Call the button's function, but pass it the contents
 	-- of the dialog!
@@ -399,12 +419,23 @@ function S:makeButton(windowName, params)
 		end
 	end
 
+	local onRelease = callExternalFunction
+	local id = params.id
+	
+	if (params.buttonType == "cancel") then
+		onRelease = cancelDialogButtonRelease
+		id = windowName
+	elseif (params.buttonType == "close") then
+		onRelease = closeDialogButtonRelease
+		id = windowName
+	end
+
 	local button = widget.newButton{
-		id = params.id,
+		id = id,
 		width = params.width,
 		height = params.height,
 		label = params.label,
-		onRelease = callExternalFunction,
+		onRelease = onRelease,
 	}
 	button:setReferencePoint(display.TopLeftReferencePoint)
 	if (params.xAlign == "right") then
@@ -462,6 +493,9 @@ function S.new(params)
 
 	params.name = params.name or "dialog"
 	params.name = funx.trim(params.name)
+	-- Blank scene is a blank scene we can use to leave a dialog when there
+	-- is no scene to go back to, i.e. when dialog is not called from another scene.
+	local blankscene = storyboard.newScene("blank")
 	local scene = storyboard.newScene(params.name)
 
 	-- the name of this dialog
@@ -472,7 +506,7 @@ function S.new(params)
 	if (not S.window[windowName]) then
 		window = {
 			params = params,
-			status = {},
+			windowStatus = {},
 			results = {},
 			dialogDefinition = {},
 		}
@@ -531,7 +565,7 @@ function S.new(params)
 
 	--]]
 
-	local function makeTextInputField(g, f, label, desc, style, x,y, margins, innermargins, fieldX, w,h, value, isSecure, inputType, fieldType, confirms, sourceField, dialogDefinition)
+	local function makeTextInputField(g, f, label, desc, style, backgroundWidth, backgroundHeight, x,y, margins, innermargins, fieldX, w,h, value, isSecure, inputType, fieldType, confirms, sourceField, dialogDefinition)
 
 
 				---------------------------------------------------------------
@@ -563,8 +597,16 @@ function S.new(params)
 
 
 
-		local linespace = funx.applyPercent(dialogDefinition.dialogTextLineHeight or settings.dialog.dialogTextLineHeight, screenH)
-		local spaceafter = funx.applyPercent(dialogDefinition.dialogTextSpaceAfter or settings.dialog.dialogTextSpaceAfter, screenH)
+		local linespace = funx.percentOfScreenHeight(dialogDefinition.dialogTextLineHeight or settings.dialog.dialogTextLineHeight)
+		local spaceafter = funx.percentOfScreenHeight(dialogDefinition.dialogTextSpaceAfter or settings.dialog.dialogTextSpaceAfter)
+
+		local textwidth
+		if (window.dialogDefinition.fieldDescWidth or settings.dialog.fieldDescWidth) then
+			-- Note, width can be percent of background (g object) width, not screen width
+			textwidth = funx.applyPercent(window.dialogDefinition.fieldDescWidth or self.settings.dialog.fieldDescWidth, backgroundWidth)
+		else
+			textwidth = backgroundWidth - innermargins.left - innermargins.right
+		end
 
 		-- Write the description
 		local descText = ""
@@ -574,7 +616,7 @@ function S.new(params)
 				text = desc,
 				font = dialogDefinition.dialogDescFont or settings.dialog.dialogDescFont,
 				size = dialogDefinition.dialogDescFontSize or settings.dialog.dialogDescFontSize,
-				width = funx.applyPercent(dialogDefinition.fieldDescWidth or settings.dialog.fieldDescWidth, screenW),
+				width = textwidth,
 				textstyles = textstyles,
 				defaultStyle = style or "dialogDescription",
 				cacheDir = "",
@@ -584,7 +626,7 @@ function S.new(params)
 			descText:setReferencePoint(display.TopLeftReferencePoint)
 			descText.x = x
 			descText.y = y + descText.yAdjustment
-			y = y + descText.height + funx.applyPercent(dialogDefinition.spaceAfterDesc or settings.dialog.spaceAfterDesc, screenH)
+			y = y + descText.height + funx.percentOfScreenHeight(dialogDefinition.spaceAfterDesc or settings.dialog.spaceAfterDesc)
 		end
 
 		local font = dialogDefinition.dialogFont or settings.dialog.dialogFont
@@ -610,8 +652,8 @@ function S.new(params)
 		end
 
 		-- Width might be in percent
-		local maxWidth = g.width - fieldX - innermargins[3]
-		local fieldWidth = funx.applyPercent(w, g.width - (innermargins[1] + innermargins[3]) )
+		local maxWidth = g.width - fieldX - innermargins.right
+		local fieldWidth = funx.applyPercent(w, g.width - (innermargins.left + innermargins.right) )
 		local fieldWidth = math.min(fieldWidth,maxWidth)
 
 		-- Make a box to show where the textfield is.
@@ -638,7 +680,7 @@ function S.new(params)
 		-- dialog on screen, say because we are sliding in from the side, then positioning
 		-- won't work!
 
-		local xScreen, yScreen = fieldX + margins[1], y + margins[2]
+		local xScreen, yScreen = fieldX + margins.left, y + margins.top + innermargins.top
 
 		if (fieldType == "textbox") then
 			-- Create the native textbox
@@ -691,15 +733,9 @@ function S.new(params)
 
 		local elements = { buttons = {}, textblocks = {}, fields = {}, objects = {}, all = {} }
 		conditions = conditions or {}
-		-- margins are percent of WIDTH of enclosing object (g): L,T,R,B
-		local margins = {}
-		for i,v in pairs(funx.split(dialogDefinition.dialogWindowMargins or settings.dialog.dialogWindowMargins)) do
-			margins[#margins+1] = funx.applyPercent(v, screenW)
-		end
-		local innermargins = {}
-		for i,v in pairs(funx.split(dialogDefinition.dialogInnerMargins or settings.dialog.dialogInnerMargins)) do
-			innermargins[#innermargins+1] = funx.applyPercent(v, backgroundWidth)
-		end
+
+		local margins = S.window[windowName].margins
+		local innermargins = S.window[windowName].innermargins
 
 		-- A positioning obj for this group, to maintain the top.
 		local headerRect = display.newRect(g, 0, 0, 0, 0)
@@ -708,16 +744,16 @@ function S.new(params)
 		headerRect.y = 0
 		headerRect:setFillColor(255,255,255,250)
 
-		local linespace = funx.applyPercent(dialogDefinition.dialogTextLineHeight or settings.dialog.dialogTextLineHeight, screenH)
-		local spaceafter = funx.applyPercent(dialogDefinition.dialogTextSpaceAfter or settings.dialog.dialogTextSpaceAfter, screenH)
-		local buttonSpaceAfter = funx.applyPercent(dialogDefinition.buttonSpaceAfter or settings.dialog.buttonSpaceAfter, screenH)
+		local linespace = funx.percentOfScreenHeight(dialogDefinition.dialogTextLineHeight or settings.dialog.dialogTextLineHeight)
+		local spaceafter = funx.percentOfScreenHeight(dialogDefinition.dialogTextSpaceAfter or settings.dialog.dialogTextSpaceAfter)
+		local buttonSpaceAfter = funx.percentOfScreenHeight(dialogDefinition.buttonSpaceAfter or settings.dialog.buttonSpaceAfter)
 
 		-- X to left margin
-		x = innermargins[1]
-		
+		x = innermargins.left
+
 		-- fieldX is the x position of a text field from the left inner margin.
 		-- Note, can be percent of background width, not screen width
-		local fieldX = innermargins[1] + funx.applyPercent(dialogDefinition.dialogTextInputFieldXOffset or settings.dialog.dialogTextInputFieldXOffset, backgroundWidth - (innermargins[1]+innermargins[3]) )
+		local fieldX = innermargins.left + funx.applyPercent(dialogDefinition.dialogTextInputFieldXOffset or settings.dialog.dialogTextInputFieldXOffset, backgroundWidth - (innermargins.left+innermargins.right) )
 
 		local k = 1
 		local prevY = y
@@ -742,7 +778,7 @@ function S.new(params)
 				--y = y + buttonSpaceAfter
 
 				-- get the width
-				f.width = funx.applyPercent(f.width, backgroundWidth - (innermargins[1] + innermargins[3]) )
+				f.width = funx.applyPercent(f.width, backgroundWidth - (innermargins.left + innermargins.right) )
 				elements.buttons[f.id] = {}
 				elements.buttons[f.id].params = f
 				local button = S:makeButton(windowName, f)
@@ -752,7 +788,7 @@ function S.new(params)
 				button:setReferencePoint(display.TopLeftReferencePoint)
 				if (f.xAlign == "right") then
 					button:setReferencePoint(display.TopRightReferencePoint)
-					x = backgroundWidth - innermargins[3]
+					x = backgroundWidth - innermargins.right
 				elseif (f.xAlign == "center") then
 					button:setReferencePoint(display.TopCenterReferencePoint)
 					x = backgroundWidth/2
@@ -774,18 +810,18 @@ function S.new(params)
 				elements.textblocks[f.id].textblock = S:makeTextBlock(windowName, f)
 				g:insert(elements.textblocks[f.id].textblock)
 				-- Position the block
-				x = innermargins[1]
+				x = innermargins.left
 				elements.textblocks[f.id].textblock.x = x
 				elements.textblocks[f.id].textblock.y = y + elements.textblocks[f.id].textblock.yAdjustment
 				y = y + elements.textblocks[f.id].textblock.height + spaceafter
 				thisElement = elements.textblocks[f.id].textblock
 
 			elseif (f.isObject) then
-				x = innermargins[1]
+				x = innermargins.left
 
-				local hh = (funx.applyPercent(f.height, screenH) or 0)/2
+				local hh = (funx.percentOfScreenHeight(f.height) or 0)/2
 				y = y + hh
-				local x2 = backgroundWidth - innermargins[3]
+				local x2 = backgroundWidth - innermargins.right
 				local color =  funx.stringToColorTable (f.color or "0,0,0,100%")
 				if (f.isLine) then
 					thisElement = display.newLine( g, x,y, x2,y )
@@ -795,18 +831,18 @@ function S.new(params)
 				elements.objects[f.id] = thisElement
 				y = y + hh
 			elseif (f.isSpace) then
-				x = innermargins[1]
+				x = innermargins.left
 
-				local hh = (funx.applyPercent(f.height, screenH) or 0)/2
+				local hh = (funx.percentOfScreenHeight(f.height) or 0)/2
 				thisElement = display.newGroup()
 				y = y + hh
 				elements.objects[f.id] = thisElement
 			else
 				-- Make a text input field
 				local style = f.style or "dialogDescription"
-				x = innermargins[1]
+				x = innermargins.left
 
-				thisElement, y = makeTextInputField(g, f, f.label, f.desc, f.style, x,y, margins, innermargins, fieldX, f.width, f.height, f.value, f.isSecure, f.inputType, f.fieldType, f.confirms, elements.fields[f.confirms], dialogDefinition)
+				thisElement, y = makeTextInputField(g, f, f.label, f.desc, f.style, backgroundWidth, backgroundHeight, x,y, margins, innermargins, fieldX, f.width, f.height, f.value, f.isSecure, f.inputType, f.fieldType, f.confirms, elements.fields[f.confirms], dialogDefinition)
 				k = k + 1
 				y = y + linespace + spaceafter
 				elements.fields[f.id] = thisElement
@@ -896,15 +932,13 @@ function S.new(params)
 
 
 		-- a string in the form, L,T,R,B
-		local innermargins = {}
-		local im = dialogDefinition.dialogInnerMargins or settings.dialog.dialogInnerMargins
-		for i,v in pairs(funx.split(im)) do
-			innermargins[#innermargins+1] = funx.applyPercent(v, g.width)
-		end
+		local margins = S.window[windowName].margins
+		local innermargins = S.window[windowName].innermargins
+
 
 		local p = {
 			text = dialogDefinition.dialogTitle or settings.dialog.dialogTitle,
-			width = g.width - innermargins[1] - innermargins[3],
+			width = g.width - innermargins.left - innermargins.bottom,
 			textstyles = textstyles,
 			defaultStyle = "dialogTitle",
 			align = "center",
@@ -916,8 +950,8 @@ function S.new(params)
 		-- title
 		titleText:setReferencePoint( display.TopLeftReferencePoint )
 		local color =  funx.stringToColorTable (settings.dialog.dialogTitleFontColor)
-		titleText.x = innermargins[1]
-		titleText.y = innermargins[2]
+		titleText.x = innermargins.left
+		titleText.y = innermargins.top
 
 		return g
 	end
@@ -937,33 +971,51 @@ function S.new(params)
 
 		rebuildDisplaySettings()
 
-		-- Add a transparent layer to dim what is behind the dialog
-		local dimmer = display.newRect(group, 0,0,screenW,screenH)
-		local color = funx.stringToColorTable (settings.dialog.dimmerColor or "0,0,0,50%" )
-		dimmer:setFillColor(color[1], color[2], color[3], color[4])
-
-
 		local bkgd = display.newGroup()
 		group:insert(bkgd)
 		group.bkgd = bkgd
 
+		-- Add a transparent layer to dim what is behind the dialog
+		local dimmer = display.newRect(bkgd, 0,0,screenW,screenH)
+		local color = funx.stringToColorTable (settings.dialog.dimmerColor or "0,0,0,50%" )
+		dimmer:setFillColor(color[1], color[2], color[3], color[4])
+		dimmer:setReferencePoint( display.TopLeftReferencePoint )
+		dimmer.x = 0
+		dimmer.y = 0
+
+		-- DIMMER gives us positioning on the screen at top/left, now we can lock down
+		-- bkgd location
+		bkgd:setReferencePoint( display.TopLeftReferencePoint )
+		bkgd.x = 0
+		bkgd.y = 0
+
 		-- The structure of the dialog is a JSON file in the system folder
 		local filename
+		local path = params.path or pathToModule.."dialogs/"
+		local systemDirectory = params.systemDirectory or system.ResourceDirectory
+
 		if (windowName) then
-			filename = pathToModule.."dialogs/dialog.structure." .. funx.trim(windowName) .. ".json"
+			filename = path .. "dialog.structure." .. funx.trim(windowName) .. ".json"
 		else
-			filename = pathToModule.."dialogs/dialog.structure.default.json"
+			filename = pathToModule.."dialog.structure.default.json"
+			systemDirectory = system.ResourceDirectory
 		end
 
 		-- Get and store the dialog definition
-		local dialogDefinition = funx.loadTable(filename, system.ResourceDirectory)
+		local dialogDefinition
+		if (not funx.fileExists(filename, systemDirectory) ) then
+			print ("ERROR: missing dialog structure file: ", filename)
+		else
+			dialogDefinition = funx.loadTable(filename, systemDirectory)
+		end
+
 		if (dialogDefinition) then
 			S.window[windowName].dialogDefinition = dialogDefinition
 
-			local margins = {}
-			for i,v in pairs(funx.split(dialogDefinition.dialogWindowMargins or settings.dialog.dialogWindowMargins)) do
-				margins[#margins+1] = funx.applyPercent(v, screenW)
-			end
+			local margins = funx.stringToMarginsTable(dialogDefinition.dialogWindowMargins or settings.dialog.dialogWindowMargins, "10%,10%,10%,10%")
+			local innermargins = funx.stringToMarginsTable(dialogDefinition.dialogInnerMargins or settings.dialog.dialogInnerMargins, "10%,10%,10%,10%")
+			S.window[windowName].margins = margins
+			S.window[windowName].innermargins = innermargins
 
 			local backgroundColor = dialogDefinition.dialogBackgroundColor or settings.dialog.dialogBackgroundColor
 			local rrectCorners = settings.dialog.cornerRadius
@@ -971,37 +1023,41 @@ function S.new(params)
 
 			local x,y
 
-			bkgd:setReferencePoint( display.CenterReferencePoint )
+			local bkgdWidth = screenW - margins.left - margins.right
+			local bkgdHeight = screenH - margins.top - margins.bottom
 
-			-- BACKGROUND Rounded Rect
-			local r = display.newRoundedRect(bkgd, margins[1], margins[2], screenW - margins[1] - margins[3],screenH - margins[2] - margins[4], rrectCorners, rrectCorners)
+			-- BACKGROUND Rounded Rect for whole dialog
+			local r = display.newRoundedRect(bkgd, margins.left, margins.top, bkgdWidth, bkgdHeight, rrectCorners)
 			local color = funx.stringToColorTable (backgroundColor)
-			r:setFillColor(color[1], color[2], color[3], color[4])
+			r:setFillColor(unpack(color))
 			bkgd.background = r
-			r:setReferencePoint( display.TopCenterReferencePoint )
-			r.y = margins[1]
+			r:setReferencePoint( display.TopLeftReferencePoint )
+			r.x = margins.left
+			r.y = margins.top
+
 
 			-- Background elements, such as backgrounds, title, fixed buttons
-			local dialogBackgroundElements = buildBackgroundElements(bkgd.width, bkgd.height, dialogDefinition)
+			local dialogBackgroundElements = buildBackgroundElements(bkgdWidth, bkgdHeight, dialogDefinition)
 			bkgd:insert(dialogBackgroundElements)
 			bkgd.dialogBackgroundElements = dialogBackgroundElements
-			dialogBackgroundElements:setReferencePoint( display.TopCenterReferencePoint )
+			dialogBackgroundElements:setReferencePoint( display.TopLeftReferencePoint )
 
-			dialogBackgroundElements.x = r.x
-			dialogBackgroundElements.y = r.y
-
-
-			local bkgdWidth = r.width
-			local bkgdHeight = r.height
+			dialogBackgroundElements.x = margins.left
+			dialogBackgroundElements.y = margins.top
 
 			local xOffset = 0
 			local padding = 20
 
 
 			-- CLOSE BUTTON + CANCEL BUTTON
-
 			-- Submit button - same as "OK"
-			if (settings.dialog.showSubmitButton) then
+			local showButton
+			if (dialogDefinition.showSubmitButton ~= nil) then
+				showButton = dialogDefinition.showSubmitButton
+			else
+				showButton = settings.dialog.showSubmitButton
+			end
+			if (showButton == true ) then
 				local submitButton = widget.newButton{
 					id = windowName,
 					defaultFile = settings.dialog.dialogCloseButton,
@@ -1013,7 +1069,7 @@ function S.new(params)
 				bkgd:insert(submitButton)
 				submitButton:setReferencePoint(display.TopRightReferencePoint)
 				-- allow 10 px for the shadow of the popup background
-				r:setReferencePoint(display.TopRightReferencePoint)
+				--r:setReferencePoint(display.TopRightReferencePoint)
 
 				-- top right corner
 				--submitButton.x = midscreenX + (bkgdWidth/2) + (submitButton.width/2)
@@ -1021,7 +1077,7 @@ function S.new(params)
 				--submitButton.y = r.y - (submitButton.height/2)
 
 				-- Inside top right
-				submitButton.x = midscreenX + (bkgdWidth/2) - padding
+				submitButton.x = margins.left + bkgdWidth - padding
 				submitButton.y = r.y + padding
 
 				xOffset = submitButton.width + padding
@@ -1029,7 +1085,12 @@ function S.new(params)
 
 
 			-- Cancel button
-			if (settings.dialog.showCancelButton) then
+			if (dialogDefinition.showCancelButton ~= nil) then
+				showButton = dialogDefinition.showCancelButton
+			else
+				showButton = settings.dialog.showCancelButton
+			end
+			if (showButton == true) then
 				local cancelButton = widget.newButton{
 					id = windowName,
 					defaultFile = settings.dialog.dialogCancelButton,
@@ -1052,7 +1113,7 @@ function S.new(params)
 				-- top right inside
 				cancelButton:setReferencePoint(display.TopRightReferencePoint)
 				-- allow 10 px for the shadow of the popup background
-				cancelButton.x = midscreenX + (bkgdWidth/2)  - xOffset - padding
+				cancelButton.x = margins.left + bkgdWidth  - xOffset - padding
 				--cancelButton.y = midscreenY - (bkgdHeight)/2 - (cancelButton.width/2)
 				r:setReferencePoint(display.TopRightReferencePoint)
 				cancelButton.y = r.y + padding
@@ -1061,7 +1122,7 @@ function S.new(params)
 		else
 			print ("ERROR: Missing dialog structure for " .. filename)
 		end -- if dialogstructure
-		
+
 	end
 
 
@@ -1069,6 +1130,7 @@ function S.new(params)
 	-- Called BEFORE scene has moved onscreen:
 	function scene:willEnterScene( event )
 		local group = self.view
+
 		local dialogDefinition = S.window[windowName].dialogDefinition
 
 		-- Structure of dialog was read into 'dialogDefinition' in 'create'
@@ -1079,35 +1141,22 @@ function S.new(params)
 			local bkgd = group.bkgd
 			bkgd:setReferencePoint( display.CenterReferencePoint )
 
---[[
-			-- Background elements, such as backgrounds, title, fixed buttons
-			local dialogBackgroundElements = buildBackgroundElements(bkgd.width, bkgd.height, dialogDefinition)
-			group:insert(dialogBackgroundElements)
-			group.dialogBackgroundElements = dialogBackgroundElements
-			dialogBackgroundElements:setReferencePoint( display.CenterReferencePoint )
-
-			dialogBackgroundElements.x = bkgd.x
-			dialogBackgroundElements.y = bkgd.y
---]]
 			-- a string in the form, L,T,R,B
-			local margins = {}
-			for i,v in pairs(funx.split(dialogDefinition.dialogWindowMargins or settings.dialog.dialogWindowMargins)) do
-				margins[#margins+1] = funx.applyPercent(v, screenW)
-			end
-			local innermargins = {}
-			for i,v in pairs(funx.split(dialogDefinition.dialogInnerMargins or settings.dialog.dialogInnerMargins)) do
-				innermargins[#innermargins+1] = funx.applyPercent(v, bkgd.width)
-			end
+			local margins = S.window[windowName].margins
+			local innermargins = S.window[windowName].innermargins
 
-			local linespace = funx.applyPercent(dialogDefinition.dialogTextLineHeight or dialogDefinition.dialogTextLineHeight or settings.dialog.dialogTextLineHeight, screenH)
-			local blockspace = funx.applyPercent(dialogDefinition.dialogBlockSpacing or dialogDefinition.dialogBlockSpacing or settings.dialog.dialogBlockSpacing, screenH)
-			local spaceafter = funx.applyPercent(dialogDefinition.dialogTextSpaceAfter or dialogDefinition.dialogTextSpaceAfter or settings.dialog.dialogTextSpaceAfter, screenH)
-			local blockwidth =  bkgd.width - innermargins[2] - innermargins[4]
-			local contentY = funx.applyPercent(dialogDefinition.dialogContentY or dialogDefinition.dialogContentY or settings.dialog.dialogContentY, screenH)
+			local bkgdWidth = screenW - margins.left - margins.right
+			local bkgdHeight = screenH - margins.top - margins.bottom
 
-			-- INFO TEXT
-			-- Info, e.g. connected to which website...
-			y =  contentY
+			local linespace = funx.percentOfScreenHeight(dialogDefinition.dialogTextLineHeight or dialogDefinition.dialogTextLineHeight or settings.dialog.dialogTextLineHeight)
+			local blockspace = funx.percentOfScreenHeight(dialogDefinition.dialogBlockSpacing or dialogDefinition.dialogBlockSpacing or settings.dialog.dialogBlockSpacing)
+			local spaceafter = funx.percentOfScreenHeight(dialogDefinition.dialogTextSpaceAfter or dialogDefinition.dialogTextSpaceAfter or settings.dialog.dialogTextSpaceAfter)
+			local blockwidth =  bkgdWidth - innermargins.left - innermargins.bottom
+
+			-- Y of the first line of content below the title bar
+			--local contentY = funx.percentOfScreenHeight(dialogDefinition.dialogContentY or dialogDefinition.dialogContentY or settings.dialog.dialogContentY)
+			--y =  contentY
+			y = settings.dialog.headerHeight
 
 			--[[
 			Conditionals in the params. These are true/false values
@@ -1145,16 +1194,20 @@ function S.new(params)
 
 			-- Add in values from params and existing data
 			local subs = funx.tableMerge(params.substitutions, fields)
-			for i, f in pairs(dialogDefinition.elements) do
-				-- Substitutions in the label/desc fields
-				f.label = funx.substitutions (f.label, subs)
-				f.desc = funx.substitutions (f.desc, subs)
-				f.text = funx.substitutions (f.text, subs)
-				if (fields[f.id] and fields[f.id] ~= "") then
-					f.value = funx.substitutions(fields[f.id], subs)
-				else
-					f.value = funx.substitutions(f.value, subs)
+			if (dialogDefinition.elements) then
+				for i, f in pairs(dialogDefinition.elements) do
+					-- Substitutions in the label/desc fields
+					f.label = funx.substitutions (f.label, subs)
+					f.desc = funx.substitutions (f.desc, subs)
+					f.text = funx.substitutions (f.text, subs)
+					if (fields[f.id] and fields[f.id] ~= "") then
+						f.value = funx.substitutions(fields[f.id], subs)
+					else
+						f.value = funx.substitutions(f.value, subs)
+					end
 				end
+			else
+				print ("ERROR: dialog: missing elements in the dialog definition. Perhaps the structure file is missing?")
 			end
 
 
@@ -1167,28 +1220,34 @@ function S.new(params)
 			group:insert(dialogElementsGroup)
 			group.elements = dialogElementsGroup
 			dialogElementsGroup:setReferencePoint(display.TopLeftReferencePoint)
-			--dialogElementsGroup.x = margins[1]
-			--dialogElementsGroup.y = margins[2]
+			--dialogElementsGroup.x = margins.left
+			--dialogElementsGroup.y = margins.top
 
-			S.window[windowName].elements = makeDialogElements(dialogElementsGroup, windowName, dialogDefinition, bkgd.width, bkgd.height, x,y, conditions )
+			S.window[windowName].elements = makeDialogElements(dialogElementsGroup, windowName, dialogDefinition, bkgdWidth, bkgdHeight, x,y, conditions )
 
 			dialogElementsGroup:setReferencePoint(display.TopLeftReferencePoint)
-			dialogElementsGroup.x = margins[1]
-			dialogElementsGroup.y = margins[2]
+			dialogElementsGroup.x = margins.left
+			dialogElementsGroup.y = margins.top + innermargins.top
 
 			-- Clear flags created when the dialog is close
 			S.window[windowName].didExitScene = false
 			S.window[windowName].destroyScene = false
 			S.window[windowName].exists = true
 
-			-- resize the background rect of the dialog to fit			
+			-- resize the background rect of the dialog to fit
 			local  y = bkgd.background.y
-			bkgd.background.height = dialogElementsGroup.contentHeight + innermargins[3]
+			bkgd.background.height = dialogElementsGroup.contentHeight + innermargins.top +  innermargins.bottom
 			bkgd.background:setReferencePoint(display.TopLeftReferencePoint)
 			bkgd.background.y = y
 
 
 		end	-- end if dialog definition
+
+	end
+
+
+	-- Used for modal dialogs
+	function scene:overlayBegan( event )
 
 	end
 
@@ -1251,7 +1310,6 @@ function S.new(params)
 		local results = {}
 		-- Get the params, saved for us by enterScene
 		local params = group.params
-
 		-- Get values of all fields
 		results = S:getFieldValues(windowName)
 		-- Save results to the dialog.window tables
@@ -1271,26 +1329,26 @@ function S.new(params)
 		end
 
 		-- Submit hit (i.e. "OK" button)
-		if ( S.window[windowName].status.submit ) then
+		if ( S.window[windowName].windowStatus.submit ) then
 			-- save?
 			if (params.writeValues) then
 				saveValuesToDocuments(windowName, results, params.showSavedFeedback)
 			end
 			-- execute the success function passed in params
 			if (params.onSubmitButton) then
-				results.status = "ok"
+				results.windowStatus = "ok"
 				params.onSubmitButton(results)
 			end
-		elseif (S.window[windowName].status.cancel) then
+		elseif (S.window[windowName].windowStatus.cancel) then
 			if (params.onCancelButton) then
-				results.status = "cancelled"
+				results.windowStatus = "cancelled"
 				params.onCancelButton(results)
 			end
 		end
 
 		-- Clear the flags
-		S.window[windowName].status.submit = false
-		S.window[windowName].status.cancel = false
+		S.window[windowName].windowStatus.submit = false
+		S.window[windowName].windowStatus.cancel = false
 	end
 
 
@@ -1312,6 +1370,13 @@ function S.new(params)
 
 		-----------------------------------------------------------------------------
 
+
+	end
+
+
+
+	-- Used for modal dialogs
+	function scene:overlayEnded( event )
 
 	end
 

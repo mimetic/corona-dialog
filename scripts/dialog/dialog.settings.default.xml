@@ -30,11 +30,13 @@
 		<msgDialogChildLock>To lock books which are rated appropriate for 18+ years of age, enter a lock code below:</msgDialogChildLock>
 		<msgConfirmFieldDoesNotMatch>The confirmation does not match!</msgConfirmFieldDoesNotMatch>
 
-		<!-- margins are percent of width of screen: L,T,R,B -->
+		<!-- margins are percent of width of screen: margins are T,L,B,R -->
 		<dialogWindowMargins value="5%, 5%, 5%, 5%" />
-		<dialogInnerMargins value="8%, 15, 8%, 8%" />
+		<dialogInnerMargins value="2%, 2%, 3%, 2%" />
 		<dialogBackgroundColor value="230,230,230,100%" />
 		<dialogTextInputFieldsTop value="15%" />
+		<dialogBackgroundStrokeColor value="50,50,50,100%" />
+		<dialogBackgroundStroke value="10" />
 
 		<cornerRadius value="30" />
 		
@@ -59,7 +61,8 @@
 		<!-- we position these text fields from the left of the settings window -->
 		<dialogTextInputFieldXOffset value="10%" />
 		<fieldLabelWidth value="20%" />
-		<fieldDescWidth value="70%" />
+		<!-- In general, this isn't so good. It limits text width to a percentage of the dialog width, rather than using the inner margins -->
+		<fieldDescWidth notInUse="100%" />
 		<fieldTextColor value="0,0,0,100%" />
 		<fieldFrameBackground value="255,255,255,255" />
 		<fieldFrameStrokeColor value="220,220,220,100%" />
