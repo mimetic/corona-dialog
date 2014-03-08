@@ -37,6 +37,10 @@ local maxTapTime = 700
 
 local swipeDistance = 40
 
+local dragDistance = 0
+local dragDistanceX = 0
+local dragDistanceY = 0
+
 function new(actions)  
 
 	local allowHVSwiping = actions.allowHVSwiping or false

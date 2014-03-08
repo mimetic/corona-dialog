@@ -40,7 +40,7 @@
       "fieldType": "textfield"
     }
   ],
-  "dialogBackgroundColor": "230,230,230,100%",
+  "dialogBackgroundColor": "230,230,230,85%",
   "dialogInnerMargins": "8%, 8%, 8%, 8%",
   "dialogWindowMargins": "5%, 15%, 5%, 5%",
   "dialogTextInputFieldsTop": "",

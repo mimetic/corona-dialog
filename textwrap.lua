@@ -1,21 +1,78 @@
 -- textwrap.lua
+--
+-- Version 2.1
+--
+-- Copyright (C) 2013 David I. Gross. All Rights Reserved.
+--
+-- This software is is protected by the author's copyright, and may not be used, copied,
+-- modified, merged, published, distributed, sublicensed, and/or sold, without
+-- written permission of the author.
+--
+-- The above copyright notice and this permission notice shall be included in all copies
+-- or substantial portions of the Software.
+--
+-- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+-- INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+-- PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+-- FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+-- OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+-- DEALINGS IN THE SOFTWARE.
+--
+--[[
+
+	Create a block text, wrapped to fit a rectangular boundary.
+	Formats text using basic HTML.
+	@return 	textblock	A display group containing the wrapped text.
+
+
+
+	Pass params in a table, e.g. options = { ... }
+	Inside of the options table:
+	@param	hyperlinkFillColor	An RGBa string, e.g. "150,200,120,50", of the color for hyperlinks.
+
+
+]]
+
+
+-- TESTING
+local testing = false
+
+
+-- Main var for this module
+local T = {}
+
 
 local funx = require ("funx")
 local html = require ("html")
 local entities = require ("entities")
 
+-- functions
 local max = math.max
 local lower = string.lower
+local gmatch = string.gmatch
+local gsub = string.gsub
+local strlen = string.len
+local substring = string.sub
+local find = string.find
+local floor = math.floor
+local gfind = string.gfind
 
+-- shortcuts to my functions
+local trim = funx.trim
+local stringToColorTable = funx.stringToColorTable
+local split = funx.split
+local setCase = funx.setCase
+
+
+
+-- Useful constants
+local OPAQUE = 255
+local TRANSPARENT = 0
 
 -- Be sure a caches dir is set up inside the system caches
 local textWrapCacheDir = "textwrap"
 --funx.mkdir (textWrapCacheDir, "",false, system.CachesDirectory)
 
-
-
--- functions
-local floor = math.floor
 
 -- testing function
 local function showTestLine(group, y, isFirstTextInBlock, i)
@@ -26,14 +83,13 @@ local function showTestLine(group, y, isFirstTextInBlock, i)
 	else
 		q:setColor(80 * i,80 * i, 80)
 	end
-	q.width = 2
+	q.strokeWidth = 2
 end
 
 
 
--- Main var for this module
-local T = {}
-
+-- Use "." at the beginning of a line to add spaces before it.
+local usePeriodsForLineBeginnings = false
 
 -------------------------------------------------
 -- font metrics module, for knowing text heights and baselines
@@ -50,6 +106,7 @@ local fontFaces = fontMetrics.metrics.variations or {}
 -- This table can be used to check if a tag is an inline tag:
 -- if (inline[tag]) then...
 -------------------------------------------------
+--[[
 local inline = {
 	a = true,
 	abbr = true,
@@ -89,17 +146,11 @@ local inline = {
 	u = true,
 	var = true,
 }
-
+--]]
 
 --------------------------------------------------------
 -- Common functions redefined for speed
 --------------------------------------------------------
-
-local strlen = string.len
-local substring = string.sub
-local stringFind = string.find
-local floor = math.floor
-
 
 --------------------------------------------------------
 -- Convert pt values to pixels, for font sizing.
@@ -111,21 +162,21 @@ local floor = math.floor
 -- 12pt => 132/72 * 12pt => 24px
 --------------------------------------------------------
 local function convertValuesToPixels (t, deviceMetrics)
-	t = funx.trim(t)
-	local _, _, n = string.find(t, "^(%d+)")
-	local _, _, u = string.find(t, "(%a%a)$")
+	t = trim(t)
+	local _, _, n = find(t, "^(%d+)")
+	local _, _, u = find(t, "(%a%a)$")
 
 	if (u == "pt" and deviceMetrics) then
 		n = n * (deviceMetrics.ppi/72)
 	end
-	return n
+	return tonumber(n)
 end
 
 
 --------------------------------------------------------
 -- Get tag formatting values
 --------------------------------------------------------
-local function getTagFormatting(fontFaces, tag, currentfont, attr)
+local function getTagFormatting(fontFaces, tag, currentfont, variation, attr)
 	local font, basename
 			------------
 			-- If the fontfaces list has our font transformation, use it,
@@ -149,23 +200,27 @@ local function getTagFormatting(fontFaces, tag, currentfont, attr)
 		return {}
 	end
 
-	local basefont = string.gsub(currentfont, "%-.*$","")
-	local _,_,variation = stringFind(currentfont, "%-(.-)$")
+	local basefont = gsub(currentfont, "%-.*$","")
+	--local _,_,variation = find(currentfont, "%-(.-)$")
 	variation = variation or ""
 
 	local format = {}
-
 	if (tag == "em" or tag == "i") then
-		if (variation == "Bold") then
+		if (variation == "Bold" or variation == "BoldItalic") then
 			format.font = getFontFace (basefont, "-BoldItalic")
+			format.fontvariation = "BoldItalic"
 		else
 			format.font = getFontFace (basefont, "-Italic")
+			format.fontvariation = "Italic"
+--print (basefont, format.font)
 		end
 	elseif (tag == "strong" or tag == "b") then
-		if (variation == "Italic") then
+		if (variation == "Italic" or variation == "BoldItalic") then
 			format.font = getFontFace (basefont, "-BoldItalic")
+			format.fontvariation = "BoldItalic"
 		else
 			format.font = getFontFace (basefont, "-Bold")
+			format.fontvariation = "Bold"
 		end
 	elseif (tag == "font" and attr) then
 		format = attr
@@ -174,9 +229,9 @@ local function getTagFormatting(fontFaces, tag, currentfont, attr)
 	elseif (attr) then
 		-- get style info
 		local style = {}
-		local p = funx.split(attr.style, ";", true) or {}
+		local p = split(attr.style, ";", true) or {}
 		for i,j in pairs( p ) do
-			local c = funx.split(j,":",true)
+			local c = split(j,":",true)
 			if (c[1] and c[2]) then
 				style[c[1]] = c[2]
 			end
@@ -215,7 +270,7 @@ end
 -- @param tag, attr
 -- @return tag, attr
 local function convertHeaders(tag, attr)
-	if ( tag and string.find(tag, "[hH]%d") ) then
+	if ( tag and find(tag, "[hH]%d") ) then
 		attr.class = lower(tag)
 		tag = "p"
 	end
@@ -227,13 +282,18 @@ end
 --------------------------------------------------------
 -- CACHE of textwrap!!!
 --------------------------------------------------------
-local function saveTextWrapToCache(id, cache, cacheDir)
+local function saveTextWrapToCache(id, cache, baselineCache, cacheDir)
 	if (cacheDir and cacheDir ~= "") then
-		funx.mkdir (cacheDir .. "/" .. textWrapCacheDir, "",false, system.CachesDirectory)
+		funx.mkdirTree (cacheDir .. "/" .. textWrapCacheDir, system.CachesDirectory)
+		--funx.mkdir (cacheDir .. "/" .. textWrapCacheDir, "",false, system.CachesDirectory)
 		-- Developing: delete the cache
+		
+		-- Add in the baseline cache
+		cache.baselineCache = baselineCache
+		local c = { wrapCache = cache, baselineCache = baselineCache }
 		if (true) then
 			local fn =  cacheDir .. "/" .. textWrapCacheDir .. "/" ..  id .. ".json"
-			funx.saveTable(cache, fn , system.CachesDirectory)
+			funx.saveTable(c, fn , system.CachesDirectory)
 		end
 	end
 end
@@ -243,11 +303,10 @@ local function loadTextWrapFromCache(id, cacheDir)
 	if (cacheDir) then
 		local fn = cacheDir .. "/" .. textWrapCacheDir .. "/" ..  id .. ".json"
 
-		local p = {}
 		if (funx.fileExists(fn, system.CachesDirectory)) then
-			p = funx.loadTable(fn, system.CachesDirectory)
-			--print ("cacheTemplatizedPage: found page "..fn )
-			return p
+			local c = funx.loadTable(fn, system.CachesDirectory)
+--print ("cacheTemplatizedPage: found page "..fn )
+			return c
 		end
 	end
 	return false
@@ -265,6 +324,134 @@ local function iteratorOverCacheText (t)
 		end
 	end
 end
+
+-- Create a cache chunk table from either an existing cache entry or for a chunk of XML for the cache table.
+-- A chunk may have multiple lines.
+-- Weird to use separate tables for each attribute? But this allows us to iterate over the words
+-- instead of over the cache entry, allowing us to use the existing for-do structure.
+local function newCacheChunk ( cachedChunk )
+	
+	cachedChunk = {
+						text = {}, 
+						item = {},
+					}
+	
+	return cachedChunk
+end
+
+
+-- Get a chunk entry from the cache table
+local function getCachedChunkItem(t, i)
+	return t.item[i]
+end
+
+local function updateCachedChunk (t, args)
+	local i = args.index or 1
+	-- Write all in one entry
+	t.item[i] = args
+	-- Write text table for iteration
+	t.text[i] = args.text
+	return t
+end
+
+
+--------------------------------------------------------
+-- Make a box that is the right size for touching.
+-- Problem is, the font sizes are so big, they overlap lines.
+-- This box will be a nicer size.
+-- NOte, there is no stroke, so we don't x+1/y+1
+local function touchableBox(g, referencePoint, x,y, width, height, fillColor)
+
+	local touchme = display.newRect(0,0,width, height)
+	funx.setFillColorFromString(touchme, fillColor)
+
+	g:insert(touchme)
+	touchme:setReferencePoint(referencePoint)
+	touchme.x = x
+	touchme.y = y
+	touchme:toBack()
+
+	return touchme
+end
+
+
+--------------------------------------------------------
+-- Add a tap handler to the object and pass it the tag attributes, e.g. href
+-- @param obj A display object, probably text
+-- @param id String: ID of the object?
+-- @param attr table: the attributes of the tag, e.g. href or target, HTML stuff, !!! also the text tapped should be in "text" in attr
+-- @param handler table A function to handle link values, like "goToPage". These should work with the button handler in slideView
+local function attachLinkToObj(obj, attr, handler)
+
+	local function comboListener( event )
+		local object = event.target
+		if not ( event.phase ) then
+			local attr = event.target._attr
+			--print( "Tap event on word!", attr.text)
+
+
+			if (handler) then
+				handler(event)
+				--print( "Tap event on word!", attr.text)
+				--print ("Tapped on ", attr.text)
+			else
+				print ("WARNING: textwrap:attachLinkToObj says no handler set for this event.")
+			end
+		end
+		return true
+	end
+
+	obj.id = attr.id or (attr.id or "")
+	obj._attr = attr
+	obj:addEventListener( "tap", comboListener )
+	obj:addEventListener( "touch", comboListener )
+end
+
+
+
+
+------------------------------------------------
+-- Get the ascent of a font, which is how we position text.
+-- Set InDesign to position from the box top using leading
+------------------------------------------------
+local function getFontAscent(baselineCache, font, size)
+	
+	local baseline, baselineAdjustment, ascent
+
+	if (baselineCache[font] and baselineCache[font][size]) then
+			baseline, baselineAdjustment, ascent = unpack(baselineCache[font][size])
+--print ("GetFontAscent CACHE", font, size, ":",baseline, baselineAdjustment, ascent)
+	else
+
+		local fontInfo = fontMetrics.getMetrics(font)
+
+		-- Get the iOS bounding box size for this particular font!!!
+		-- This must be done for each size and font, since it changes unpredictably
+		local samplefont = display.newText("X", 0, 0, font, size)
+		local boxHeight = samplefont.height
+		samplefont:removeSelf()
+		samplefont = nil
+
+		-- Set the new baseline from the font metrics
+		baseline = boxHeight + (size * fontInfo.descent)
+		
+		--local yAdjustment = (settings.size * fontInfo.capheight) - baseline
+		ascent = fontInfo.ascent * size
+		
+		-- This should adjust the font above/below the baseline to reflect differences in fonts,
+		-- putting them all on the same line.
+		baselineAdjustment = -(size * fontInfo.descent)
+
+		if (not baselineCache[font]) then
+			baselineCache[font] = {}
+		end
+		baselineCache[font][size] = { baseline, baselineAdjustment, ascent }
+	end
+	return baseline, baselineAdjustment, ascent
+end
+
+
+
 
 
 --------------------------------------------------------
@@ -292,23 +479,34 @@ local function autoWrappedText(text, font, size, lineHeight, color, width, align
 	local midscreenX = screenW*(0.5)
 	local midscreenY = screenH*(0.5)
 
-	local testing = false
 	if (testing) then
-		print ("autoWrappedText: testing flag is true")
+		print ("autoWrappedText: testing flag is true.")
+		print ("----------")
+		--print (text.text)
+		--print ("----------")
 	end
 
-	local deviceMetrics = funx.getDeviceMetrics( )
+	-- table for useful settings. We need fewer upvalues, and this is a way to do that
+	local settings = {}
 
---if text == '' then return false end
+	settings.deviceMetrics = funx.getDeviceMetrics( )
+
+	settings.minWordLen = 2
+
+	settings.isHTML = false
+
+	-- handler for links
+	settings.handler = {}
+
+	--if text == '' then return false end
 	local result = display.newGroup()
-	local minWordLen = 2
+
 	-- Get from the funx textStyles variable.
-	local myTextStyles = textstyles or {}
+	local textstyles = textstyles or {}
 
-	local parseDepth = 0
+	local hyperlinkFillColor
 
-	local isHTML = false
-
+	-- If table passed, then extract values
 	if (type(text) == "table") then
 		font = text.font
 		size = text.size
@@ -321,33 +519,47 @@ local function autoWrappedText(text, font, size, lineHeight, color, width, align
 		targetDeviceScreenSize = text.targetDeviceScreenSize
 		letterspacing = text.letterspacing
 		maxHeight = text.maxHeight
-		minWordLen = text.minWordLen
-		myTextStyles = text.textstyles or myTextStyles
-		isHTML = text.isHTML or false
+		settings.minWordLen = text.minWordLen
+		textstyles = text.textstyles or textstyles
+		settings.isHTML = text.isHTML or false
 		defaultStyle = text.defaultStyle or ""
 		cacheDir = text.cacheDir
+		settings.handler = text.handler
+		hyperlinkFillColor = text.hyperlinkFillColor or "0,0,255,"..TRANSPARENT
+
 		-- restore text
 		text = text.text
 	end
 
 	-- Caching values
+	-- Name the cache with the width, too, so the same text isn't wrapped to the wrong
+	-- width based on the cache.
 	local textUID = 0
 	local textwrapIsCached = false
 	local cache = { { text = "", width = "", } }
-	local cacheChunkCtr = 1
+	local cacheIndex = 1
+	
+	-- Cache of font baselines for different sizes, as drawing on screen
+	baselineCache = {}
+	
+	-- Interpret the width so we can get it right caching:
+	width = funx.percentOfScreenWidth(width) or display.contentWidth
 
 	if ( cacheDir and cacheDir ~= "" ) then
-		textUID = "cache"..funx.checksum(text)
-		local res = loadTextWrapFromCache(textUID, cacheDir)
-		if (res) then
+		textUID = "cache"..funx.checksum(text).."_"..tostring(width)
+		local c = loadTextWrapFromCache(textUID, cacheDir)
+		if (c) then
 			textwrapIsCached = true
-			cache = res
+			cache = c.wrapCache
+			baselineCache = c.baselineCache
+			--print ("***** CACHE LOADED")
+			funx.dump(cache)
 		end
 	end
 
 
 	-- default
-	minWordLen = minWordLen or 2
+	settings.minWordLen = settings.minWordLen or 2
 	text = text or ""
 	if (text == "") then
 		return result
@@ -400,6 +612,11 @@ local function autoWrappedText(text, font, size, lineHeight, color, width, align
 	text = text:gsub(funx.unescape(lineSeparatorCode),"")
 	text = text:gsub(funx.unescape(paragraphSeparatorCode),"")
 
+	-- Convert entities in the text, .e.g. "&#8211;"
+	text = entities.unescape(text)
+
+
+
 	--[[
 	-- NOT IN USE: THIS IS BEFORE WE PARSED INDESIGN INTO HTML
 
@@ -409,7 +626,7 @@ local function autoWrappedText(text, font, size, lineHeight, color, width, align
 	-- simply extra blank space!
 
 	-- We check later WHICH line end we use, and format appropriately
-	if (not isHTML) then
+	if (not settings.isHTML) then
 		text = text:gsub(funx.unescape(lineSeparatorCode),"\r ")
 		text = text:gsub(funx.unescape(paragraphSeparatorCode),"\n ")
 
@@ -424,29 +641,47 @@ local function autoWrappedText(text, font, size, lineHeight, color, width, align
 	maxHeight = tonumber(maxHeight) or 0
 
 
-	-- Min text size
-	local minTextSize = 12
-
 	-- Minimum number of characters per line. Start low.
-	local minLineCharCount = minCharCount or 5
+	--local minLineCharCount = minCharCount or 5
 
 	-- This will cause problems with Android
-	font = font or native.systemFont
-	size = tonumber(size) or 12
-	color = color or {0,0,0,0}
-	width = funx.applyPercent(width, screenW) or display.contentWidth
-	opacity = funx.applyPercent(opacity, 1) or 1
-	targetDeviceScreenSize = targetDeviceScreenSize or screenW..","..screenH
+--	font = font or "Helvetica" --native.systemFont
+--	size = tonumber(size) or 12
+--	color = color or {0,0,0,0}
+--	width = funx.percentOfScreenWidth(width) or display.contentWidth
+--	opacity = funx.applyPercent(opacity, OPAQUE) or OPAQUE
+--	targetDeviceScreenSize = targetDeviceScreenSize or screenW..","..screenH
 	-- case can be ALL_CAPS or NORMAL
-	local case = "NORMAL";
+	--local case = "NORMAL";
 	-- Space before/after paragraph
-	local spaceBefore = 0
-	local spaceAfter = 0
-	local firstLineIndent = 0
-	local currentFirstLineIndent = 0
-	local leftIndent = 0
-	local rightIndent = 0
-	local bullet = "&#9679;"
+	--local spaceBefore = 0
+	--local spaceAfter = 0
+	--local firstLineIndent = 0
+	--local currentFirstLineIndent = 0
+	--local leftIndent = 0
+	--local rightIndent = 0
+	--local bullet = "&#9679;"
+
+	-- Combine a bunch of local variables into a settings array because we have too many "upvalues"!!!
+	settings.font = font or "Helvetica" --native.systemFont
+	 -- used to restore from bold, bold-italic, etc. since some names aren't clear, e.g. FoozleSemiBold might be the only bold for a font
+	settings.fontvariation = ""
+	settings.size = tonumber(size) or 12
+	settings.color = color or {0,0,0,0}
+	settings.width = width
+	settings.opacity = funx.applyPercent(opacity, OPAQUE) or OPAQUE
+	settings.targetDeviceScreenSize = targetDeviceScreenSize or screenW..","..screenH
+	settings.case = "none"
+	settings.decoration = "none"
+	settings.spaceBefore = 0
+	settings.spaceAfter = 0
+	settings.firstLineIndent = 0
+	settings.currentFirstLineIndent = 0
+	settings.leftIndent =0
+	settings.rightIndent = 0
+	settings.bullet = "&#9679;"
+	settings.minLineCharCount = minCharCount or 5
+	settings.maxHeight = tonumber(maxHeight) or 0
 
 	------ POSITIONING RECT
 	-- Need a positioning rect so that indents work.
@@ -455,19 +690,20 @@ local function autoWrappedText(text, font, size, lineHeight, color, width, align
 	-- THIS WILL FAIL. SO, IF THE "ALIGN" IS SET TO CENTER, FOR SOME LEGACY REASON, BUT THE FIRST
 	-- LINE IS OTHERWISE, THIS WILL FAIL. FUCK.
 	--local r = display.newRect(0,0,width,10)
-	local r = display.newRect(0,0,0,1)
-	r:setFillColor(255,0,0)
+	--[[
+	local r = display.newRect(0,0,5,5)
+	r:setFillColor(255,0,0,OPAQUE)
 	result:insert(r)
 	result._positionRect = r
 	r.strokeWidth=0
-	r:setReferencePoint(display["Bottom" .. textAlignment .. "ReferencePoint"])
-	--r:setReferencePoint(display["Bottom" .. "Left" .. "ReferencePoint"])
+	r.anchorX, r.anchorY = 0,0
 	r.x = 0
 	r.y = 0
 	r.isVisible = testing
+	--]]
 
 
- 	lineHeight = funx.applyPercent(lineHeight, size) or floor(size * 1.3)
+ 	lineHeight = funx.applyPercent(lineHeight, settings.size) or floor(settings.size * 1.3)
 
 	-- Scaling for device
 	-- Scale the text proportionally
@@ -495,28 +731,28 @@ local function autoWrappedText(text, font, size, lineHeight, color, width, align
 		local function getAllStyleSettings ()
 			local params = {}
 
-			params.font = font
+			params.font = settings.font
+			params.fontvariation = settings.fontvariation
 			-- font size
-			params.size = size
-			params.minLineCharCount = minLineCharCount
+			params.size = settings.size
+			params.minLineCharCount = settings.minLineCharCount
 			params.lineHeight = lineHeight
-			params.color = color
-			params.width = width
-			params.opacity = opacity
+			params.color = settings.color
+			params.width = settings.width
+			params.opacity = settings.opacity
 			-- case (upper/normal)
-			params.case = case
+			params.case = settings.case
 			-- space before paragraph
-			params.spaceBefore = spaceBefore or 0
+			params.spaceBefore = settings.spaceBefore or 0
 			-- space after paragraph
-			params.spaceAfter = spaceAfter or 0
+			params.spaceAfter = settings.spaceAfter or 0
 			-- First Line Indent
 			params.firstLineIndent =firstLineIndent
 			-- Left Indent
-			params.leftIndent = leftIndent
+			params.leftIndent = settings.leftIndent
 			-- Right Indent
-			params.rightIndent = rightIndent
+			params.rightIndent = settings.rightIndent
 			params.textAlignment = textAlignment
-
 			return params
 		end
 
@@ -525,37 +761,38 @@ local function autoWrappedText(text, font, size, lineHeight, color, width, align
 		-- These are set using the values from internal variables, e.g. font or size,
 		-- NOT from the style sheet parameters.
 		local function setStyleSettings (params)
-			if (params.font ) then font = params.font end
+			if (params.font ) then settings.font = params.font end
+			if (params.fontvariation) then settings.fontvariation = params.fontvariation end
 				-- font size
-			if (params.size ) then size = params.size end
-			if (params.minLineCharCount ) then minLineCharCount = params.minLineCharCount end
+			if (params.size ) then settings.size = params.size end
+			if (params.minLineCharCount ) then settings.minLineCharCount = params.minLineCharCount end
 			if (params.lineHeight ) then lineHeight = params.lineHeight end
-			if (params.color ) then color = params.color end
-			if (params.width ) then width = params.width end
-			if (params.opacity ) then opacity = params.opacity end
+			if (params.color ) then settings.color = params.color end
+			if (params.width ) then settings.width = params.width end
+			if (params.opacity ) then settings.opacity = params.opacity end
 				-- case (upper/normal)
-			if (params.case ) then case = params.case end
+			if (params.case ) then settings.case = params.case end
 				-- space before paragraph
-			if (params.spaceBefore ) then spaceBefore = tonumber(params.spaceBefore) end
+			if (params.spaceBefore ) then settings.spaceBefore = tonumber(params.spaceBefore) end
 				-- space after paragraph
-			if (params.spaceAfter ) then spaceAfter = tonumber(params.spaceAfter) end
+			if (params.spaceAfter ) then settings.spaceAfter = tonumber(params.spaceAfter) end
 				-- First Line Indent
 			if (params.firstLineIndent ) then params.firstLineIndent = tonumber(firstLineIndent) end
 				-- Left Indent
-			if (params.leftIndent ) then leftIndent = tonumber(params.leftIndent) end
+			if (params.leftIndent ) then settings.leftIndent = tonumber(params.leftIndent) end
 				-- Right Indent
-			if (params.rightIndent ) then rightIndent = tonumber(params.rightIndent) end
+			if (params.rightIndent ) then settings.rightIndent = tonumber(params.rightIndent) end
 			if (params.textAlignment ) then textAlignment = params.textAlignment end
 	--[[
-			if (lower(textAlignment) == "Right") then
-				x = width - rightIndent
-				currentFirstLineIndent = 0
-				firstLineIndent = 0
-			elseif (lower(textAlignment) == "Left") then
+			if (lower(textAlignment) == "right") then
+				x = settings.width - settings.rightIndent
+				settings.currentFirstLineIndent = 0
+				settings.firstLineIndent = 0
+			elseif (lower(textAlignment) == "left") then
 				x = 0
 			else
-				local currentWidth = width - leftIndent - rightIndent -- firstLineIndent
-				x = floor(currentWidth/2) --+ firstLineIndent
+				local currentWidth = settings.width - settings.leftIndent - settings.rightIndent -- settings.firstLineIndent
+				x = floor(currentWidth/2) --+ settings.firstLineIndent
 			end
 	]]
 		end
@@ -566,13 +803,13 @@ local function autoWrappedText(text, font, size, lineHeight, color, width, align
 		-- This depends on the closure for variables, such as font, size, etc.
 		local function setStyleFromCommandLine (params)
 			-- font
-			if (params[2] and params[2] ~= "") then font = funx.trim(params[2]) end
+			if (params[2] and params[2] ~= "") then settings.font = trim(params[2]) end
 			-- font size
 			if (params[3] and params[3] ~= "") then
-				size = tonumber(params[3])
+				settings.size = tonumber(params[3])
 				--size = scaleToScreenSize(tonumber(params[3]), scalingRatio)
 				-- reset min char count in case we loaded a BIG font
-				minLineCharCount = minCharCount or 5
+				settings.minLineCharCount = minCharCount or 5
 			end
 
 			-- line height
@@ -581,47 +818,54 @@ local function autoWrappedText(text, font, size, lineHeight, color, width, align
 				--lineHeight = scaleToScreenSize(tonumber(params[4]), scalingRatio)
 			end
 			-- color
-			if ((params[5] and params[5] ~= "") and (params[6] and params[6] ~= "") and (params[7] and params[7] ~= "")) then color = {tonumber(params[5]), tonumber(params[6]), tonumber(params[7])} end
+			if ((params[5] and params[5] ~= "") and (params[6] and params[6] ~= "") and (params[7] and params[7] ~= "")) then
+				-- Handle opacity as RGBa or HDRa, not by itself
+				if (params[9] and params[9] ~= "") then
+					settings.color = {tonumber(params[5]), tonumber(params[6]), tonumber(params[7]), funx.applyPercent(params[9], OPAQUE) }
+				else
+					settings.color = {tonumber(params[5]), tonumber(params[6]), tonumber(params[7], OPAQUE) }
+				end
+			end
 			-- width of the text block
 			if (params[8] and params[8] ~= "") then
 				if (params[8] == "reset" or params[8] == "r") then
-					width = defaultSettings.width
+					settings.width = defaultSettings.width
 				else
-					width = tonumber(funx.applyPercent(params[8], screenW) or defaultSettings.width)
+					settings.width = tonumber(funx.percentOfScreenWidth(params[8]) or defaultSettings.width)
 				end
-				minLineCharCount = minCharCount or 5
+				settings.minLineCharCount = minCharCount or 5
 			end
-			-- opacity
-			if (params[9] and params[9] ~= "") then opacity = funx.applyPercent(params[9],1) end
+			-- opacity (Now always 100%)
+			--if (params[9] and params[9] ~= "") then settings.opacity = funx.applyPercent(params[9], OPAQUE) end
+			settings.opacity = 1.0
 			-- case (upper/normal)
-			if (params[10] and params[10] ~= "") then case = funx.trim(params[10]) end
+			if (params[10] and params[10] ~= "") then settings.case = lower(trim(params[10])) end
 
 			-- space before paragraph
-			if (params[12] and params[12] ~= "") then spaceBefore = tonumber(params[13]) end
+			if (params[12] and params[12] ~= "") then settings.spaceBefore = tonumber(params[12]) end
 			-- space after paragraph
-			if (params[13] and params[13] ~= "") then spaceAfter = tonumber(params[13]) end
+			if (params[13] and params[13] ~= "") then settings.spaceAfter = tonumber(params[13]) end
 			-- First Line Indent
-			if (params[14] and params[14] ~= "") then firstLineIndent = tonumber(params[14]) end
+			if (params[14] and params[14] ~= "") then settings.firstLineIndent = tonumber(params[14]) end
 			-- Left Indent
-			if (params[15] and params[15] ~= "") then leftIndent = tonumber(params[15]) end
+			if (params[15] and params[15] ~= "") then settings.leftIndent = tonumber(params[15]) end
 			-- Right Indent
-			if (params[16] and params[16] ~= "") then rightIndent = tonumber(params[16]) end
+			if (params[16] and params[16] ~= "") then settings.rightIndent = tonumber(params[16]) end
 
 			-- alignment (note, set first line indent, etc., first!
 			if (params[11] and params[11] ~= "") then
 				textAlignment = funx.fixCapsForReferencePoint(params[11])
 				-- set the line starting point to match the alignment
 				if (lower(textAlignment) == "right") then
-					x = width - rightIndent
-					currentFirstLineIndent = 0
-					firstLineIndent = 0
-				elseif (lower(textAlignment) == "left") then
-					x = 0
+					x = settings.width - settings.rightIndent
+					settings.currentFirstLineIndent = 0
+					settings.firstLineIndent = 0
+				elseif (lower(textAlignment) == "center") then
+					local currentWidth = settings.width - settings.leftIndent - settings.rightIndent -- settings.firstLineIndent
+					x = floor(currentWidth/2) --+ settings.firstLineIndent
 				else
-					local currentWidth = width - leftIndent - rightIndent -- firstLineIndent
-					x = floor(currentWidth/2) --+ firstLineIndent
+					x = 0
 				end
-
 			end
 		end
 
@@ -633,100 +877,113 @@ local function autoWrappedText(text, font, size, lineHeight, color, width, align
 		-- fontFaces, font are in the closure!
 		local function setStyleFromTag (tag, attr)
 
-			local format = getTagFormatting(fontFaces, tag, font, attr)
-
+			local format = getTagFormatting(fontFaces, tag, settings.font, settings.fontvariation, attr)
+			if (not format or format == {}) then
+				return 
+			end
 			-- font
-			if (format.font) then font = funx.trim(format.font) end
+			if (format.font) then
+				settings.font = trim(format.font)
+				settings.fontvariation = format.fontvariation
+			end
 			-- font with CSS:
-			if (format['font-family']) then font = funx.trim(format['font-family']) end
+			if (format['font-family']) then
+				settings.font = trim(format['font-family'])
+				settings.fontvariation = format.fontvariation
+			end
 
 			-- font size
 			if (format['font-size'] or format['size']) then
 				if (format['font-size']) then
 					-- convert pt values to px
-					size = convertValuesToPixels(format['font-size'])
+					settings.size = convertValuesToPixels(format['font-size'], settings.deviceMetrics)
 				else
-					size = convertValuesToPixels(format['size'])
+					settings.size = convertValuesToPixels(format['size'], settings.deviceMetrics)
 				end
 
 				--size = scaleToScreenSize(tonumber(params[3]), scalingRatio)
 				-- reset min char count in case we loaded a BIG font
-				minLineCharCount = minCharCount or 5
+				settings.minLineCharCount = minCharCount or 5
 			end
 
 			-- lineHeight (HTML property)
 			if (format.lineHeight) then
-				lineHeight = convertValuesToPixels (format.lineHeight)
+				lineHeight = convertValuesToPixels (format.lineHeight, settings.deviceMetrics)
 			end
 
 
 			-- lineHeight (CSS property)
 			if (format['line-height']) then
-				lineHeight = convertValuesToPixels (format['line-height'])
+				lineHeight = convertValuesToPixels (format['line-height'], settings.deviceMetrics)
 			end
 
 			-- color
 			-- We're using decimal, e.g. 12,24,55 not hex (#ffeeff)
 			if (format.color) then
-				local _, _, c = string.find(format.color, "%((.*)%)")
-				local s = funx.stringToColorTable(c)
+				local _, _, c = find(format.color, "%((.*)%)")
+				local s = stringToColorTable(c)
 				if (s) then
-					color = { s[1], s[2], s[3], s[4] }
+					settings.color = { s[1], s[2], s[3], s[4] }
 				end
 			end
-
 
 			-- width of the text block
 			if (format.width) then
 				if (format.width == "reset" or format.width == "r") then
-					width = defaultSettings.width
+					settings.width = defaultSettings.width
 				else
-					width = tonumber(funx.applyPercent(format.width, screenW) or defaultSettings.width)
+					-- Remove "px" from the width value if it is there.
+					format.width = format.width:gsub("px$","")
+					settings.width = tonumber(funx.percentOfScreenWidth(format.width) or defaultSettings.width)
 				end
-				minLineCharCount = minCharCount or 5
+				settings.minLineCharCount = minCharCount or 5
 			end
 
 			-- opacity
-			if (format.opacity) then opacity = funx.applyPercent(format.opacity,1) end
+			-- Now built into the color, e.g. RGBa color
+			--if (format.opacity) then settings.opacity = funx.applyPercent(format.opacity, OPAQUE) end
 
-			-- case (upper/normal) using legacy coding ("case")
+			-- case (upper/normal) using *legacy* coding ("case")
 			if (format.case) then
-				case = lower(funx.trim(format.case))
-				if (case == "none") then
-					case = "normal"
-				end
+				settings.case = lower(trim(format.case))
 			end
 
 			-- case, using CSS, e.g. "text-transform:uppercase"
-			if (format['text-transform']) then case = funx.trim(format.case) end
+			if (format["text-transform"]) then settings.case = lower(trim(format["text-transform"])) end
+			-- Fix legacy "normal" setting, which in CSS is "none"
+			if settings.case == "normal" then settings.case = "none"; end
+
+			if (format["text-decoration"]) then 
+				settings.decoration = lower(trim(format["text-decoration"])) 
+			end
 
 			-- space before paragraph
-			if (format['margin-top']) then spaceBefore = convertValuesToPixels(format['margin-top']) end
+			if (format['margin-top']) then settings.spaceBefore = convertValuesToPixels(format['margin-top'], settings.deviceMetrics) end
 
 			-- space after paragraph
-			if (format['margin-bottom']) then spaceAfter = convertValuesToPixels(format['margin-bottom']) end
+			if (format['margin-bottom']) then settings.spaceAfter = convertValuesToPixels(format['margin-bottom'], settings.deviceMetrics) end
 
 			-- First Line Indent
-			if (format['text-indent']) then firstLineIndent = convertValuesToPixels(format['text-indent']) end
+			if (format['text-indent']) then settings.firstLineIndent = convertValuesToPixels(format['text-indent'], settings.deviceMetrics) end
 
 			-- Left Indent
-			if (format['margin-left']) then leftIndent = convertValuesToPixels(format['margin-left']) end
+			if (format['margin-left']) then settings.leftIndent = convertValuesToPixels(format['margin-left'], settings.deviceMetrics) end
 
 			-- Right Indent
-			if (format['margin-right']) then rightIndent = convertValuesToPixels(format['margin-right']) end
+			if (format['margin-right']) then settings.rightIndent = convertValuesToPixels(format['margin-right'], settings.deviceMetrics) end
 
 			-- alignment (note, set first line indent, etc., first!
 			if (format['text-align']) then
 				textAlignment = funx.fixCapsForReferencePoint(format['text-align'])
 				-- set the line starting point to match the alignment
 				if (lower(textAlignment) == "right") then
-					x = width - rightIndent
-					currentFirstLineIndent = 0
-					firstLineIndent = 0
+					x = settings.width - settings.rightIndent
+					settings.currentFirstLineIndent = 0
+					settings.firstLineIndent = 0
 				elseif (lower(textAlignment) == "center") then
 					-- Center
-					local currentWidth = width - leftIndent - rightIndent -- firstLineIndent
-					x = floor(currentWidth/2) --+ firstLineIndent
+					local currentWidth = settings.width - settings.leftIndent - settings.rightIndent -- settings.firstLineIndent
+					x = floor(currentWidth/2) --+ settings.firstLineIndent
 				else
 					x = 0
 				end
@@ -735,8 +992,43 @@ local function autoWrappedText(text, font, size, lineHeight, color, width, align
 
 			-- list bullet
 			if (format['bullet']) then
-				bullet = format['bullet'] or "&#9679;"
+				settings.bullet = format['bullet'] or "&#9679;"
 			end
+			
+			
+			------------------------------------------------
+			-- Refigure font metrics if font has changed
+			------------------------------------------------
+			if (settings.font ~= prevFont or settings.size ~= prevSize) then
+
+				if ( baselineCache[settings.font] and baselineCache[settings.font][settings.size] ) then
+					baseline = baselineCache[settings.font][settings.size]
+				else
+					-- ALIGN TOP OF TEXT FRAME TO CAP HEIGHT!!!
+					-- If this is the first line in the block of text, DON'T apply the space before settings
+					-- Tell the function which called this to raise the entire block to the cap-height
+					-- of the first line.
+					--[[
+					fontInfo = fontMetrics.getMetrics(settings.font)
+
+					-- Get the iOS bounding box size for this particular font!!!
+					-- This must be done for each size and font, since it changes unpredictably
+					local samplefont = display.newText("X", 0, 0, settings.font, settings.size)
+					local boxHeight = samplefont.height
+					samplefont:removeSelf()
+					samplefont = nil
+
+					-- Set the new baseline from the font metrics
+					baseline = boxHeight + (settings.size * fontInfo.descent)
+					--]]
+					baseline, baselineAdjustment, ascent = getFontAscent(baselineCache, settings.font, settings.size)
+				end
+				prevFont = settings.font
+				prevSize = settings.size
+			end
+			
+			
+			
 		end
 
 
@@ -745,19 +1037,19 @@ local function autoWrappedText(text, font, size, lineHeight, color, width, align
 
 	-- Load default style if it exists
 	if (defaultStyle ~= "") then
-		local params = myTextStyles[defaultStyle]
+		local params = textstyles[defaultStyle]
 		if (params) then
 			setStyleFromCommandLine (params)
 		end
 	end
 
 	local defaultSettings = {
-		font=font,
-		size=size,
-		lineHeight=lineHeight,
-		color=color,
-		width=width,
-		opacity=opacity,
+		font = settings.font,
+		size = settings.size,
+		lineHeight = lineHeight,
+		color = settings.color,
+		width = settings.width,
+		opacity = settings.opacity,
 	}
 
 
@@ -776,7 +1068,7 @@ local function autoWrappedText(text, font, size, lineHeight, color, width, align
 	-- This is ;&#8233;
 	--local paragraphSeparatorCode = "%E2%80%A9"
 	-- Get lines with ending command, e.g. CR or LF
-	--	for line in string.gmatch(text, "[^\n]+") do
+	--	for line in gmatch(text, "[^\n]+") do
 	local linebreak = funx.unescape(lineSeparatorCode)
 	local paragraphbreak = funx.unescape(paragraphSeparatorCode)
 	local oneLinePattern = "[^\n^\r]+"
@@ -786,13 +1078,13 @@ local function autoWrappedText(text, font, size, lineHeight, color, width, align
 	-- Split the text into paragraphs using <p>
 	--text = breakTextIntoParagraphs(text)
 	local t1 = text
-	if (isHTML) then
+	if (settings.isHTML) then
 		--print ("Autowrap: line 500 : text is HTML!")
-		text = funx.trim(text:gsub("[\n\r]",""))
+		text = trim(text:gsub("[\n\r]",""))
 	end
 
 	-- Be sure the text block ends with a return, so the line chopper below finds the last line!
-	if (string.sub(text,1,-1) ~= "\n") then
+	if (substring(text,1,-1) ~= "\n") then
 		text = text .. "\n"
 	end
 
@@ -809,16 +1101,18 @@ local function autoWrappedText(text, font, size, lineHeight, color, width, align
 	-- Corona positions type incorrectly, at the descender line, not the baseline.
 	local yAdjustment = 0
 
+	-- The output x,y for any given chunk of text
+	local cursorX, cursorY = 0,0
 
 	-- Repeat for each block of text (ending with a carriage return)
 	-- Usually, this will be a paragraph
 	-- Text from InDesign should be one large block,
 	-- which is right since it is escaped HTML.
-	for line in string.gmatch(text, oneLinePattern) do
+	for line in gmatch(text, oneLinePattern) do
 		local command, commandline
-		local currentFirstLineIndent, currentSpaceAfter, currentSpaceBefore
+		local currentSpaceAfter, currentSpaceBefore
 
-		local lineEnd = string.sub(line,-1,-1)
+		local lineEnd = substring(line,-1,-1)
 		local q = funx.escape(lineEnd)
 
 		-- CR means end of paragraph, LF = soft-return
@@ -829,7 +1123,7 @@ local function autoWrappedText(text, font, size, lineHeight, color, width, align
 			lineBreakType = "hard"
 		end
 
-		line = funx.trim(line)
+		line = trim(line)
 
 		-----------------------------------------
 		-- COMMAND LINES:
@@ -839,25 +1133,25 @@ local function autoWrappedText(text, font, size, lineHeight, color, width, align
 		if (currentLine == "" and substring(line,1,3) == "###") then
 			currentLine = ''
 			commandline = substring(line,4,-1)	-- get end of line
-			local params = funx.split(commandline, ",", true)
-			command = funx.trim(params[1])
+			local params = split(commandline, ",", true)
+			command = trim(params[1])
 			if (command == "reset") then
-				font = defaultSettings.font
-				size = defaultSettings.size
+				settings.font = defaultSettings.font
+				settings.size = defaultSettings.size
 				lineHeight = defaultSettings.lineHeight
-				color = defaultSettings.color
-				width = defaultSettings.width
-				opacity = defaultSettings.opacity
+				settings.color = defaultSettings.color
+				settings.width = defaultSettings.width
+				settings.opacity = defaultSettings.opacity
 				textAlignment = "Left"
 				x = 0
-				currentFirstLineIndent = firstLineIndent
-				leftIndent = 0
-				rightIndent = 0
-				bullet = "&#9679;"
+				settings.currentFirstLineIndent = settings.firstLineIndent
+				settings.leftIndent = 0
+				settings.rightIndent = 0
+				settings.bullet = "&#9679;"
 			elseif (command == "style") then
 				local styleName = params[2] or "MISSING"
-				if (myTextStyles and myTextStyles[styleName] ) then
-					params = myTextStyles[styleName]
+				if (textstyles and textstyles[styleName] ) then
+					params = textstyles[styleName]
 					setStyleFromCommandLine (params)
 				else
 					print ("WARNING: funx.autoWrappedText tried to use a missing text style ("..styleName..")")
@@ -870,14 +1164,14 @@ local function autoWrappedText(text, font, size, lineHeight, color, width, align
 					textAlignment = funx.fixCapsForReferencePoint(params[2])
 					-- set the line starting point to match the alignment
 					if (lower(textAlignment) == "right") then
-						x = width - rightIndent
-						currentFirstLineIndent = 0
-						firstLineIndent = 0
-					elseif (lower(textAlignment) == "left") then
-						x = 0
+						x = settings.width - settings.rightIndent
+						settings.currentFirstLineIndent = 0
+						settings.firstLineIndent = 0
+					elseif  (lower(textAlignment) == "center") then
+						local currentWidth = settings.width - settings.leftIndent - settings.rightIndent -- settings.currentFirstLineIndent
+						x = floor(currentWidth/2) --+ settings.currentFirstLineIndent
 					else
-						local currentWidth = width - leftIndent - rightIndent -- currentFirstLineIndent
-						x = floor(currentWidth/2) --+ currentFirstLineIndent
+						x = 0
 					end
 				end
 
@@ -924,12 +1218,12 @@ local function autoWrappedText(text, font, size, lineHeight, color, width, align
 			local function renderXML (xmlChunk)
 
 				local result = display.newGroup()
+				--result.anchorChildren = true
 
-				-- Need a positioning rect so that indents work.
-if (not width) then print ("textwrap: line 844: Damn, the width is wacked"); end
+if (not settings.width) then print ("textwrap: line 844: Damn, the width is wacked"); end
 
 
-				width = width or 300
+				settings.width = settings.width or 300
 				--[[
 				local r = display.newRect(0,0,width,2)
 				r:setFillColor(100,250,0)
@@ -940,42 +1234,39 @@ if (not width) then print ("textwrap: line 844: Damn, the width is wacked"); end
 				r.isVisible = testing
 				--]]
 
+				-- Set text alignment
 				local textDisplayReferencePoint
 				if (textAlignment and textAlignment ~= "") then
 					textAlignment = funx.fixCapsForReferencePoint(textAlignment)
-					textDisplayReferencePoint = display["Bottom"..textAlignment.."ReferencePoint"]
 				else
 					textAlignment = "Left"
-					textDisplayReferencePoint = display.CenterLeftReferencePoint
 				end
-
-
-
-				-- Set text alignment
 				textDisplayReferencePoint = display["Bottom"..textAlignment.."ReferencePoint"]
 
 				local shortword = ""
 				local restOLineLen = strlen(restOLine)
 
 				-- Set paragraph wide stuff, indents and spacing
-				currentFirstLineIndent = firstLineIndent
-				currentSpaceBefore = spaceBefore
-				currentSpaceAfter = spaceAfter
+				settings.currentFirstLineIndent = settings.firstLineIndent
+				currentSpaceBefore = settings.spaceBefore
+				currentSpaceAfter = settings.spaceAfter
 
 				if (lineBreakType == "hard") then
-					currentFirstLineIndent = firstLineIndent
-					currentSpaceBefore = spaceBefore
-					currentSpaceAfter = spaceAfter
+					settings.currentFirstLineIndent = settings.firstLineIndent
+					currentSpaceBefore = settings.spaceBefore
+					currentSpaceAfter = settings.spaceAfter
+					isFirstLine = true
 				end
 
 				if (lineBreakType == "soft") then
-					currentSpaceBefore = spaceBefore
+					currentSpaceBefore = settings.spaceBefore
 					currentSpaceAfter = 0
 				end
 
 				-- If previous paragraph had a soft return, don't add space before, nor indent the 1st line
 				if (prevLineBreakType == "soft") then
-					currentFirstLineIndent = 0
+					settings.currentFirstLineIndent = 0
+					currentSpaceAfter = 0
 					currentSpaceBefore = 0
 				end
 
@@ -984,26 +1275,15 @@ if (not width) then print ("textwrap: line 844: Damn, the width is wacked"); end
 				-- Tell the function which called this to raise the entire block to the cap-height
 				-- of the first line.
 
-				local fontInfo = fontMetrics.getMetrics(font)
+				local fontInfo = fontMetrics.getMetrics(settings.font)
 				local currentLineHeight = lineHeight
-				local baselineAdjustment = 0
 
-				-- Get the iOS bounding box size for this particular font!!!
-				-- This must be done for each size and font, since it changes unpredictably
-				local samplefont = display.newText("X", 0, 0, font, size)
-				local boxHeight = samplefont.height
-				samplefont:removeSelf()
-				samplefont = nil
+				baseline, baselineAdjustment, ascent = getFontAscent(baselineCache, settings.font, settings.size)
 
-				-- boxHeight used size, so it is correct here.
-				local baseline = boxHeight + (size * fontInfo.descent)
 
 				-- change case
-				if (case) then
-					case = lower(case)
-					if (case == "all_caps" or case == "uppercase") then
-						restOLine = string.upper(restOLine)
-					end
+				if (settings.case == "all_caps" or settings.case == "uppercase") then
+					restOLine = string.upper(restOLine)
 				end
 
 				-- If something is too high, it is turned into a scrolling text block, so this
@@ -1021,20 +1301,22 @@ if (not width) then print ("textwrap: line 844: Damn, the width is wacked"); end
 					--end
 
 
-				-- Width of the text column
-				local currentWidth = width - leftIndent - rightIndent - currentFirstLineIndent
+				-- Width of the text column (not including indents which are paragraph based)
+				local currentWidth = settings.width
+				--local currentWidth = width - settings.leftIndent - settings.rightIndent - settings.currentFirstLineIndent
+
 				-- Get min characters to start with
 				-- We now know the max char width in a font,
 				-- so we can start with a minimum based on that.
 				-- IF the metric was set!
 				if (fontInfo.maxHorizontalAdvance) then
-					minLineCharCount = floor((currentWidth * widthCorrection) / (size * fontInfo.maxCharWidth) )
+					settings.minLineCharCount = floor((currentWidth * widthCorrection) / (settings.size * fontInfo.maxCharWidth) )
 				end
 
 
 
 				-- Remember the font we start with to handle bold/italic changes
-				local basefont = font
+				local basefont = settings.font
 
 				-- Offset from left or right of the current chunk of text
 				-- As we add chunks to previous chunks of text (building a line)
@@ -1044,8 +1326,8 @@ if (not width) then print ("textwrap: line 844: Damn, the width is wacked"); end
 				local prevTextInLine = ""
 
 
-				local prevFont = font
-				local prevSize = size
+				local prevFont = settings.font
+				local prevSize = settings.size
 
 
 				------------------------------------------------------------
@@ -1080,28 +1362,6 @@ if (not width) then print ("textwrap: line 844: Damn, the width is wacked"); end
 					-- Init stacks
 					stacks = stacks or { list = { ptr = 1 } }
 
-					------------------------------------------------
-					-- Get the ascent of a font, which is how we position text.
-					-- Set InDesign to position from the box top using leading
-					------------------------------------------------
-					local function getFontAscent(font,size)
-						local fontInfo = fontMetrics.getMetrics(font)
-
-						-- Get the iOS bounding box size for this particular font!!!
-						-- This must be done for each size and font, since it changes unpredictably
-						local samplefont = display.newText("X", 0, 0, font, size)
-						local boxHeight = samplefont.height
-						samplefont:removeSelf()
-						samplefont = nil
-
-						-- Set the new baseline from the font metrics
-						local baseline = boxHeight + (size * fontInfo.descent)
-						--local yAdjustment = (size * fontInfo.capheight) - baseline
-						local ascent = fontInfo.ascent * size
-						local baselineAdjustment = floor((size * fontInfo.capheight) - baseline)
-						return 0
-					end
-
 
 
 
@@ -1113,53 +1373,130 @@ if (not width) then print ("textwrap: line 844: Damn, the width is wacked"); end
 					local function renderParsedElement(elementNum, element, tag, attr)
 
 
---print ("  ")
---print ("  ")
---print ("  ")
---print ("elementNum, element, tag, attr")
---print (tag)
---funx.dump(attr)
---print (element)
+
+							local tempLineWidth, words
+							local firstWord = true
+							local words
+							local nextChunk, nextChunkLen
+							local cachedChunk
+							local cachedChunkIndex = 1
+							local currentWidth
+							local tempDisplayLineTxt
+							local result, resultPosRect
+							local tempLine, allTextInLine
+							local xOffset = 0
+							local wordlen = 0
+							local baseline = 0
+							local baselineAdjustment = 0
+							local ascent = 0
+							
+							-- ----------------------------------------------------------
+							-- <A> tag box. If we make the text itself touchable, it is easy to miss it...your touch
+							-- goes through the white spaces around letter strokes!
+							local function createLinkingBox(newDisplayLineGroup, newDisplayLineText, textDisplayReferencePoint, alttext, testBkgdColor )
+
+								testBkgdColor = testBkgdColor or {250,250,100,30}
+
+								-- when drawing the box, we compensate for the stroke, thus -2
+								local r = display.newRect(0, 0, newDisplayLineText.width-2, newDisplayLineText.height-2)
+								r.strokeWidth=1
+								newDisplayLineGroup:insert(r)
+								r:setReferencePoint(textDisplayReferencePoint)
+								r.x = newDisplayLineText.x+1
+								r.y = newDisplayLineText.y+1
+
+								r:setFillColor(unpack(testBkgdColor))
+								r:setStrokeColor(0,250,250,125)
+
+								r.isVisible = testing
+
+								if (tag == "a") then
+									local touchme = touchableBox(result, textDisplayReferencePoint, newDisplayLineGroup.x, newDisplayLineGroup.y - (fontInfo.capheight * settings.size)/4,  newDisplayLineText.width-2, fontInfo.capheight * settings.size, hyperlinkFillColor)
+
+									attr.text = alttext
+									attachLinkToObj(newDisplayLineGroup, attr, settings.handler)
+								end
+							end
 
 
-							local result = display.newGroup();
+							-- Trim the text for the line depending on alignment
+							-- Note, for right-to-left languages, you'd have to change the trimming.
+							local function trimByAlignment(t)
+								local ta = lower(textAlignment)
+
+								if (ta == "center") then
+									t = trim(t)
+								elseif (ta == "right") then
+									t = funx.rtrim(t)
+								else
+									--t = funx.rtrim(t)
+								end
+								return t
+							end
+
+
+
+							-- Align the text on the row
+							local function positionNewDisplayLineX(newDisplayLineGroup, w, currentWidth)
+								local ta = lower(textAlignment)
+
+								if (ta == "center") then
+									newDisplayLineGroup.x = x + settings.currentLeftIndent + xOffset + currentWidth/2
+								elseif (ta == "right") then
+									newDisplayLineGroup.x = currentWidth + x + settings.currentLeftIndent + settings.currentFirstLineIndent + xOffset
+								else
+									newDisplayLineGroup.x = x + settings.currentLeftIndent + settings.currentFirstLineIndent + xOffset
+								end
+
+							end
+
+							-- Align the text on the row
+							local function setCurrentXOffset(newDisplayLineText)
+								local ta = lower(textAlignment)
+
+								if (ta == "center") then
+									currentXOffset = newDisplayLineText.x
+								elseif (ta == "right") then
+									currentXOffset = currentXOffset + newDisplayLineText.width
+								else
+									currentXOffset = currentXOffset + settings.currentLeftIndent + settings.currentFirstLineIndent + newDisplayLineText.width
+								end
+							end
+
+
+
+							baseline, baselineAdjustment, ascent = getFontAscent(baselineCache, settings.font, settings.size)
+
 							-- flag to indicate the text line to be rendered is the last line of the previously
 							-- rendered text (true) or is the continuation of that text (false)
 							-- Starts true for first item, then is false unless changed later.
-							renderTextFromMargin = (elementCounter == 1)
+							if (elementCounter == 1) then
+								--renderTextFromMargin = true
+							end
 
-							local nextChunk = element or ""
-
-							local nextChunkLen = strlen(nextChunk)
-
-							--local styleSettings = getAllStyleSettings()
+							nextChunk = element or ""
+							nextChunkLen = strlen(nextChunk)
 
 							-- Apply the tag, e.g. bold or italic
 							if (tag) then
 								setStyleFromTag (tag, attr)
 							end
 
+
+							-- Set the current width of the column, factoring in indents
+							-- IS THIS RIGHT?!?!?!?
+							currentWidth = settings.width - settings.leftIndent - settings.rightIndent - settings.currentFirstLineIndent
+
+
 							------------------------------------------------
 							-- Refigure font metrics if font has changed
 							------------------------------------------------
-							if (font ~= prevFont or size ~= prevSize) then
-								-- ALIGN TOP OF TEXT FRAME TO CAP HEIGHT!!!
-								-- If this is the first line in the block of text, DON'T apply the space before settings
-								-- Tell the function which called this to raise the entire block to the cap-height
-								-- of the first line.
-								fontInfo = fontMetrics.getMetrics(font)
+							if (settings.font ~= prevFont or settings.size ~= prevSize) then
 
-								-- Get the iOS bounding box size for this particular font!!!
-								-- This must be done for each size and font, since it changes unpredictably
-								local samplefont = display.newText("X", 0, 0, font, size)
-								local boxHeight = samplefont.height
-								samplefont:removeSelf()
-								samplefont = nil
+								baseline, baselineAdjustment, ascent = getFontAscent(baselineCache, settings.font, settings.size)
 
-								-- Set the new baseline from the font metrics
-								baseline = boxHeight + (size * fontInfo.descent)
-								prevFont = font
-								prevSize = size
+								prevFont = settings.font
+								prevSize = settings.size
 							end
 							------------------------------------------------
 
@@ -1169,28 +1506,13 @@ if (not width) then print ("textwrap: line 844: Damn, the width is wacked"); end
 							-- The current line height is NOT the leading/lineheight as with other lines,
 							-- since the box should start at the Cap Height (ascender).
 
-							if (isFirstTextInBlock) then
-								currentSpaceBefore = 0
-								-- position ascent of font at initial y value
-								-- yAdjustment is used by calling functions to adjust
-								-- where they place the text block to get it right.
-								--yAdjustment = (size * fontInfo.capheight) - baseline
-								-- For rendering using ReferencePoint at Bottom
-								--yAdjustment = size - (size * fontInfo.ascent)
-								isFirstTextInBlock = false
-							end
-
 							------
 							-- Calc the adjustment so we position text at its baseline, not top-left corner
 							-- For rendering using Reference Point TopLeft
-							--baselineAdjustment = floor((size * fontInfo.capheight) - baseline)
-							-- For rendering using Reference Point BottomLeft
-							--baselineAdjustment = floor((size * fontInfo.capheight) - baseline)
-							baselineAdjustment = 0--(size/fontInfo.sampledFontSize) * fontInfo.textHeight
---print ("Baseline Adjustment for size "..size.." is "..baselineAdjustment)
---funx.dump(fontInfo)
---print ("  ")
+							--baselineAdjustment = 0
 
+							------------------------------------------------
+							-- RENDER TEXT OBJECT
 							------------------------------------------------
 							--[[
 							 Render a chunk of the text object.
@@ -1200,174 +1522,351 @@ if (not width) then print ("textwrap: line 844: Damn, the width is wacked"); end
 
 							 A chunk to render is ALWAYS pure text. All HTML formatting is outside it.
 							--]]
-							----------------
-							local function renderChunk()
 
-								local tempLineWidth, words
-								local tempDisplayLine, tempDisplayLineTxt, tempDisplayLineR
 
-								local result = display.newGroup()
+							result = display.newGroup()
+							result.anchorX, result.anchorY = 0, 0
 
-								-- Set the reference point to match the text alignment
-								textDisplayReferencePoint = display["Bottom"..textAlignment.."ReferencePoint"]
+							-- Set the reference point to match the text alignment
+							textDisplayReferencePoint = display["Bottom"..textAlignment.."ReferencePoint"]
 
-								-- Preserve initial padding before first word
-								local  _, _, padding = stringFind(nextChunk, "^(%s*)")
-								padding = padding or ""
-								local firstWord = true
+							-- Preserve initial padding before first word
+							local  _, _, padding = find(nextChunk, "^([%s%-]*)")
+							padding = padding or ""
 
-								-- Get chunks of text to iterate over to figure out line line wrap
-								local words
+							-- Get chunks of text to iterate over to figure out line line wrap
 
-								-- If the line wrapping is cached, get it
-								local cachedChunk
-								local cachedChunkLine = 1
-								if (textwrapIsCached) then
-									cachedChunk = cache[cacheChunkCtr]
-									--words = string.gmatch(cachedChunk.text, "[^\r\n]+")
-									words = iteratorOverCacheText(cachedChunk.text)
-								else
-									cachedChunk = { text = {}, width = {} }
-									words = string.gmatch(nextChunk, "([^%s%-]+)([%s%-]*)")
+							-- If the line wrapping is cached, get it
+							if (textwrapIsCached) then
+								cachedChunk = cache[cacheIndex]
+								--words = gmatch(cachedChunk.text, "[^\r\n]+")
+								cachedChunk = cachedChunk or { text = {}, item = {}, }
+								words = iteratorOverCacheText(cachedChunk.text)
+							else
+								cachedChunk = newCacheChunk()
+								words = gmatch(nextChunk, "([^%s%-]+)([%s%-]*)")
+							end
+							
+							local textAlignmentForRender = lower(textAlignment) or "left"
+
+
+-- ============================================================
+-- CACHED RENDER
+-- ============================================================
+
+if (textwrapIsCached) then
+	if (testing) then
+		print ("Rendering from cache.")
+	end
+	
+	for cachedChunkIndex, text in pairs(cachedChunk.text) do
+		
+		local cachedItem = getCachedChunkItem(cachedChunk, cachedChunkIndex)
+
+		if (cachedItem.isFirstLine) then
+			isFirstLine = false
+			currentLineHeight = lineHeight
+			currentSpaceBefore = settings.spaceBefore
+			settings.currentFirstLineIndent = settings.firstLineIndent
+			-- If first line of a block of text, then we must start on a new line.
+			-- Jump to next line to start this text
+			if (renderTextFromMargin ) then
+				lineY = lineY + currentLineHeight + currentSpaceBefore
+			end
+			--renderTextFromMargin = true
+		else
+			currentLineHeight = lineHeight
+			settings.currentFirstLineIndent = 0
+			currentSpaceBefore = 0
+			-- Not first line in a block of text, there might be something before it on the line,
+			-- e.g. a Bold/Italic block, so do not jump to next row
+			--lineY = lineY + currentLineHeight
+		end
+
+		if (cachedItem.renderTextFromMargin) then
+			xOffset = 0
+			settings.currentLeftIndent = settings.leftIndent
+			renderTextFromMargin = false
+		else
+			xOffset = currentXOffset
+			settings.currentFirstLineIndent = 0
+			settings.currentLeftIndent = 0
+			--isFirstLine = false
+		end
+		
+		
+		-- Cached values
+		currentSpaceBefore = cachedItem.currentSpaceBefore
+		lineHeight = cachedItem.lineHeight
+		xOffset = cachedItem.xOffset
+		
+		textDisplayReferencePoint = display["Bottom"..textAlignment.."ReferencePoint"]
+		
+
+								local newDisplayLineGroup = display.newGroup()
+								--newDisplayLineGroup.anchorChildren = true
+								
+								text = setCase(settings.case, text)
+								
+								local newDisplayLineText = display.newText({
+									parent = newDisplayLineGroup,
+									text = text,
+									x = 0, y = 0,
+									font = cachedItem.font,
+									fontSize = cachedItem.fontSize,
+									align = cachedItem.align,
+								})
+
+								newDisplayLineText:setFillColor(unpack(cachedItem.color))
+								newDisplayLineText:setReferencePoint(textDisplayReferencePoint)
+								newDisplayLineText.x, newDisplayLineText.y = 0,0
+								--newDisplayLineText.alpha = settings.opacity
+
+								result:insert(newDisplayLineGroup)
+								newDisplayLineGroup:setReferencePoint(textDisplayReferencePoint)
+								newDisplayLineGroup.x, newDisplayLineGroup.y = cachedItem.x, cachedItem.y
+
+								--positionNewDisplayLineX(newDisplayLineGroup, xOffset, currentWidth)
+
+								lineCount = lineCount + 1
+
+								-- Use once, then set to zero.
+								settings.currentFirstLineIndent = 0
+
+								-- <A> tag box. If we make the text itself touchable, it is easy to miss it...your touch
+								-- goes through the white spaces around letter strokes!
+								createLinkingBox(newDisplayLineGroup, newDisplayLineText, textDisplayReferencePoint, currentLine, {250,0,250,30} )
+								
+								lineCount = lineCount + 1
+								
+								if (not yAdjustment or yAdjustment == 0) then
+									--yAdjustment = (settings.size * fontInfo.ascent )- newDisplayLineGroup.height
+									yAdjustment = ( (settings.size / fontInfo.sampledFontSize ) * fontInfo.textHeight)- newDisplayLineGroup.height
 								end
 
-								local tempLine, allTextInLine
 
-								---------------------------------------------
-								for word, spacer in words do
-									if (not textwrapIsCached) then
-										if (firstWord) then
-											word = padding .. word
-											firstWord = false
-										end
+	end -- for
+	
+	cacheIndex = cacheIndex + 1
+	return result
 
-										tempLine = currentLine..shortword..word..spacer
-									else
-										spacer = ""
-										tempLine = word
+else
+
+-- ============================================================
+-- UNCACHED RENDER (writes to cache)
+-- ============================================================
+
+
+	if (testing) then
+		print ("Rendering from XML, not cache.")
+	end
+
+							---------------------------------------------
+							--local word,spacer
+							local word, spacer, longword
+							for word, spacer in words do
+
+								if (not textwrapIsCached) then
+									if (firstWord) then
+										word = padding .. word
+										firstWord = false
 									end
-									allTextInLine = prevTextInLine .. tempLine
 
-									-- Grab the first words of the line, until "minLineCharCount" hit
-									if (textwrapIsCached or (strlen(allTextInLine) > minLineCharCount)) then
+									tempLine = currentLine..shortword..word..spacer
+								else
+									spacer = ""
+									tempLine = word
+									--currentLine = word
+								end
+								allTextInLine = prevTextInLine .. tempLine
+								
+								tempLine = setCase(settings.case, tempLine)
 
-										-- Allow for lines with beginning spaces, for positioning
-										if (substring(currentLine,1,1) == ".") then
-											currentLine = substring(currentLine,2,-1)
-										end
+								-- Grab the first words of the line, until "minLineCharCount" hit
+								if (textwrapIsCached or (strlen(allTextInLine) > settings.minLineCharCount)) then
+									-- Allow for lines with beginning spaces, for positioning
+									if (usePeriodsForLineBeginnings and substring(currentLine,1,1) == ".") then
+										currentLine = substring(currentLine,2,-1)
+									end
+									
+									-- If a word is less than the minimum word length, force it to be with the next word,so lines don't end with single letter words.
+									if (not textwrapIsCached and (strlen(allTextInLine) < nextChunkLen) and strlen(word) < settings.minWordLen) then
+										shortword = shortword..word..spacer
+									else
+										if (not textwrapIsCached) then
+											-- Draw the text as a line.								-- Trim based on alignment!
+											tempDisplayLineTxt = display.newText({
+												text=trimByAlignment(tempLine),
+												x=0,
+												y=0,
+												font = settings.font,
+												fontSize = settings.size,
+												align = textAlignmentForRender or "left",
+											})
 
-										-- If a word is less than the minimum word length, force it to be with the next word,so lines don't end with single letter words.
-										if (not textwrapIsCached and (strlen(allTextInLine) < nextChunkLen) and strlen(word) < minWordLen) then
-											shortword = shortword..word..spacer
+											tempDisplayLineTxt:setReferencePoint(display.TopLeftReferencePoint)
+											tempDisplayLineTxt.x = 0
+											tempDisplayLineTxt.y = 0
+											
+											tempLineWidth = tempDisplayLineTxt.width
+											
+											-- Is this line of text too long? In which case we render the line
+											-- as text, then move down a line on the screen and start again.
+											if (renderTextFromMargin) then
+												tempLineWidth = tempDisplayLineTxt.width
+												if (isFirstLine) then
+													settings.currentFirstLineIndent = settings.firstLineIndent
+												else
+													settings.currentFirstLineIndent = 0
+												end
+											else
+												tempLineWidth = tempDisplayLineTxt.width + currentXOffset
+												settings.currentFirstLineIndent = 0
+											end
+											
+											display.remove(tempDisplayLineTxt);
+											tempDisplayLineTxt=nil;
 
 										else
-											if (not textwrapIsCached) then
-												-- add a word
-												--local tempLine = currentLine..shortword..word..spacer
+											-- CACHED LINE
+											tempLineWidth = cachedChunk.width[cachedChunkIndex]
 
-												-- Draw the text as a line.
-												tempDisplayLine = display.newGroup()
-												--local tempDisplayLineTxt = display.newText(tempDisplayLine, funx.trim(tempLine), x, 0, font, size)
-
-												tempDisplayLineTxt = display.newText(tempDisplayLine, tempLine, x, 0, font, size)
-												tempDisplayLineTxt:setReferencePoint(display.TopLeftReferencePoint)
-												tempDisplayLineTxt.x = 0
-												tempDisplayLineTxt.y = 0
-												tempDisplayLineR = display.newRect(tempDisplayLine, 0,0,1,1)
-												tempDisplayLineR:setReferencePoint(display.TopLeftReferencePoint)
-												tempDisplayLineR.x = 0
-												tempDisplayLineR.y = 0
-
-												-- Is this line of text too long? In which case we render the line
-												-- as text, then move down a line on the screen and start again.
-												if (renderTextFromMargin) then
-													tempLineWidth = tempDisplayLine.width
+											if (renderTextFromMargin) then
+												if (isFirstLine) then
+													settings.currentFirstLineIndent = settings.firstLineIndent
 												else
-													tempLineWidth = tempDisplayLine.width + currentXOffset
+													settings.currentFirstLineIndent = 0
 												end
-
-
 											else
-												-- CACHED LINE
-												tempLineWidth = cachedChunk.width[cachedChunkLine]
+												tempLineWidth = tempLineWidth + currentXOffset
+												settings.currentFirstLineIndent = 0
 											end
 
+										end
 
 
-											if (tempLineWidth <= currentWidth * widthCorrection )  then
-												currentLine = tempLine
-											else
-												if ( maxHeight==0 or (lineY <= maxHeight - currentLineHeight)) then
+										-- Since indents may change per line, we have to reset this each time.
+										currentWidth = settings.width - settings.leftIndent - settings.rightIndent - settings.currentFirstLineIndent
+										
+										if (tempLineWidth <= currentWidth * widthCorrection)  then
+											-- Do not render line, unless it is the last word,
+											-- in which case render ("C" render)
+											currentLine = tempLine
+										else
+											if ( settings.maxHeight==0 or (lineY <= settings.maxHeight - currentLineHeight)) then
 
-				-- A: line render
-				--[[
-				print ()
-				print ("------------------------------")
-				print ("A: render a line: ["..currentLine.."] (start at margin?)", renderTextFromMargin)
-				--]]
+												-- It is possible the first word is so long that it doesn't fit
+												-- the margins (a 'B' line render, below), and in that case, the currentLine is empty.
+												if (strlen(currentLine) > 0) then
+
+	-- ============================================================
+	-- A: Render text that fills the entire line, that will continue on a following line.
+	-- This line always has text that continues on the next line.
+	-- ============================================================
+
+
+
+													if (testing) then
+														print ()
+														print ("----------------------------")
+														print ("A: Render line: ["..currentLine .. "]")
+														print ("Font: [".. settings.font .. "]")
+														print ("currentWidth",currentWidth)
+														print ("isFirstLine", isFirstLine)
+														print ("renderTextFromMargin: ", renderTextFromMargin)
+														print ("   newDisplayLineGroup.y = ",lineY + baselineAdjustment .. "+" .. baselineAdjustment)
+													end
 
 													if (isFirstLine) then
-														currentLineHeight = 0
+														currentLineHeight = lineHeight
+														currentSpaceBefore = settings.spaceBefore
 														isFirstLine = false
+														settings.currentFirstLineIndent = settings.firstLineIndent
+														if (renderTextFromMargin) then
+															lineY = lineY + currentLineHeight + currentSpaceBefore
+														end
 													else
 														currentLineHeight = lineHeight
+														currentSpaceBefore = 0
+														settings.currentFirstLineIndent = 0
 													end
 
-													local xOffset = 0
-													-- This new line is at the old line baseline + leading
+
 													if (renderTextFromMargin) then
-														lineY = lineY + currentLineHeight
+														settings.currentLeftIndent = settings.leftIndent
+														xOffset = 0
 													else
 														xOffset = currentXOffset
+														settings.currentFirstLineIndent = 0
+														settings.currentLeftIndent = 0
 													end
-				--print ("xOffset, currentXOffset",xOffset, currentXOffset)
-
-													if (textwrapIsCached) then
-														currentLine = word
-													else
-														cachedChunk.text[cachedChunkLine] = currentLine
-														cachedChunk.width[cachedChunkLine] = tempLineWidth
+													
+													if (not textwrapIsCached) then
+														-- Works for left-aligned...right is a mess anyway.
+														if (renderTextFromMargin or isFirstLine) then
+															currentLine = trim(currentLine)
+														end
+														currentLine = trimByAlignment(currentLine)
+														--cachedChunk.text[cachedChunkIndex] = currentLine
+														--cachedChunk.width[cachedChunkIndex] = tempLineWidth	
 													end
-													cachedChunkLine = cachedChunkLine + 1
+													
+													local newDisplayLineGroup = display.newGroup()
 
-													local newDisplayLine = display.newText(currentLine, 0, 0, font, size)
-													newDisplayLine:setTextColor(color[1], color[2], color[3])
-													newDisplayLine.alpha = opacity
-													result:insert(newDisplayLine)
-													newDisplayLine:setReferencePoint(textDisplayReferencePoint)
-													if (lower(textAlignment) == "Center") then
-														newDisplayLine.x = floor(currentWidth/2)  + x + leftIndent + currentFirstLineIndent + xOffset
-													elseif (lower(textAlignment) == "right") then
-														newDisplayLine.x = x - xOffset
-													else
-														newDisplayLine.x = x + leftIndent + currentFirstLineIndent + xOffset
-													end
+													local newDisplayLineText = display.newText({
+														parent=newDisplayLineGroup,
+														text=currentLine,
+														x=0, y=0,
+														font=settings.font,
+														fontSize = settings.size,
+														align = textAlignmentForRender,
+													})
+													newDisplayLineText:setFillColor(unpack(settings.color))
+													newDisplayLineText:setReferencePoint(textDisplayReferencePoint)
+													newDisplayLineText.x, newDisplayLineText.y = 0, 0
+													--newDisplayLineText.alpha = settings.opacity
 
-													-- record the width of the current line
-													-- in case we need to add the next
-													-- chunk to the end of it
-													--currentXOffset = newDisplayLine.x + newDisplayLine.width
-if (testing) then
-	print ()
-	print ("----------------------------")
-	print ("A: Render line: "..currentLine)
-	print ("\nRender a line (start at margin?)", renderTextFromMargin)
-	print ("isFirstLine", isFirstLine)
-	print ("   newDisplayLine.y",lineY + baselineAdjustment, baselineAdjustment)
-	print ("   newDisplayLine HEIGHT:",newDisplayLine.height)
-	print ("leftIndent + currentFirstLineIndent + xOffset", leftIndent, currentFirstLineIndent, xOffset)
-end
+													result:insert(newDisplayLineGroup)
+													newDisplayLineGroup:setReferencePoint(textDisplayReferencePoint)
+
 													-- Adjust Y to the baseline, not top-left corner of the font bounding-box
-													newDisplayLine.y = lineY + baselineAdjustment
+													newDisplayLineGroup.y = lineY + baselineAdjustment
+
+													positionNewDisplayLineX(newDisplayLineGroup, newDisplayLineText.width, currentWidth)
+
+													-- CACHE this line
+													if (not textwrapIsCached) then
+														updateCachedChunk (cachedChunk, { 
+																	index = cachedChunkIndex, 
+																	text = currentLine,
+																	width = tempLineWidth,
+																	x = newDisplayLineGroup.x,
+																	y = newDisplayLineGroup.y,
+																	font=settings.font,
+																	fontSize = settings.size,
+																	align = textAlignmentForRender,
+																	color = settings.color,
+																	lineHeight = lineHeight,
+																	lineY = lineY,
+																	currentSpaceBefore = currentSpaceBefore,
+																	xOffset = xOffset,
+																})
+													end
+
+													-- Update cache chunk index counter
+													cachedChunkIndex = cachedChunkIndex + 1
+
+
+
 													lineCount = lineCount + 1
 
 													-- Use once, then set to zero.
-													currentFirstLineIndent = 0
+													settings.currentFirstLineIndent = 0
 
 													-- Use the current line to estimate how many chars
 													-- we can use to make a line.
 													if (not fontInfo.maxHorizontalAdvance) then
-														minLineCharCount = strlen(currentLine)
+														settings.minLineCharCount = strlen(currentLine)
 													end
 
 													word = shortword..word
@@ -1375,89 +1874,94 @@ end
 													-- We have wrapped, don't need text from previous chunks of this line.
 													prevTextInLine = ""
 
-
-
-
-
-
 													-- If next word is not too big to fit the text column, start the new line with it.
 													-- Otherwise, make a whole new line from it. Not sure how that would help.
-													local wordlen = 0
+													wordlen = 0
 													if (textwrapIsCached) then
-														wordlen = cachedChunk.width[cachedChunkLine]
+														wordlen = cachedChunk.width[cachedChunkIndex]
+													elseif ( word ~= nil ) then
+														wordlen = strlen(word) * (settings.size * fontInfo.maxCharWidth)
+														
+														local tempWord = display.newText({
+														    text=word,
+														    x=0, y=0,
+														    font=settings.font,
+														    fontSize = settings.size,
+														    align = textAlignmentForRender,
+													    })
+													    wordlen = tempWord.width
+													    tempWord:removeSelf()
+													    tempWord =  nil
+						
 													else
-														wordlen = strlen(word) * (size * fontInfo.maxCharWidth)
+													    wordlen = 0
 													end
 
-													-- *** This is needed so right/center justified lines are correctly positioned!!!
-													if (true) then
-														local w
-														if (renderTextFromMargin) then
-															w = currentWidth
-														else
-															w = newDisplayLine.width
-														end
+													-- <A> tag box. If we make the text itself touchable, it is easy to miss it...your touch
+													-- goes through the white spaces around letter strokes!
+													createLinkingBox(newDisplayLineGroup, newDisplayLineText, textDisplayReferencePoint, currentLine )
 
-														-- compensate for the stroke
-														local r = display.newRect(0,0,w-2,newDisplayLine.height-2)
-														r:setStrokeColor(0,250,250,100)
-														r.strokeWidth=1
-														result:insert(r)
-														r:setReferencePoint(textDisplayReferencePoint)
-														r.x = newDisplayLine.x+1
-														r.y = newDisplayLine.y+1
-														r.isVisible = testing
-														r:setFillColor(0,255,0,0)
-
-														if (renderTextFromMargin) then
-															r:setStrokeColor(0,250,250,100)
-														else
-															r:setStrokeColor(0,250,50,100)
-														end
-
-
-													end
-
-													-- This line has now wrapped around, and the next one should
-													-- start at the margin.
+													-- This line has now wrapped around, and the next one should start at the margin.
 													renderTextFromMargin = true
 													currentXOffset = 0
+
+													-- And, we should now move our line cursor to the next row.
+													-- We know nothing can continue on this line because we've filled it up.
+													lineY = lineY + currentLineHeight
 
 													-- Text lines can vary in height depending on whether there are upper case letters, etc.
 													-- Not predictable! So, we capture the height of the first line, and that is the basis of
 													-- our y adjustment for the entire block, to position it correctly.
-													if (not yAdjustment) then
-														--yAdjustment = (size * fontInfo.ascent )- newDisplayLine.height
-														yAdjustment = ( (size / fontInfo.sampledFontSize ) * fontInfo.textHeight)- newDisplayLine.height
-
+													if (not yAdjustment or yAdjustment == 0) then
+														--yAdjustment = (settings.size * fontInfo.ascent )- newDisplayLineGroup.height
+														yAdjustment = ( (settings.size / fontInfo.sampledFontSize ) * fontInfo.textHeight)- newDisplayLineGroup.height
 													end
 
-													if (textwrapIsCached or (wordlen <= currentWidth * widthCorrection) ) then
 
-														if (textwrapIsCached) then
-															currentLine = word
-														else
-															currentLine = word..spacer
-														end
+
+
+												else
+
+													--longword = true
+													renderTextFromMargin = true
+													currentXOffset = 0
+													lineY = lineY + currentLineHeight
+												end
+
+
+												-- --------
+												-- END 'A' RENDER
+												-- --------
+
+
+
+
+												if (textwrapIsCached or (not longword and wordlen <= currentWidth * widthCorrection) ) then
+													if (textwrapIsCached) then
+														currentLine = word
 													else
-														currentLineHeight = lineHeight
+														currentLine = word..spacer
+													end
+												else
+													currentLineHeight = lineHeight
 
-														------------------------------------------------------
-														------------------------------------------------------
-														-- B: Render a short line following a wrapped line.
-														------------------------------------------------------
+-- ----------------------------------------------------
+-- ----------------------------------------------------
+-- B: The word at the end of a line is too long to fit the text column! Very rare.
+-- Example: <span>Cows are nice to <span><span>elep|hants.<span>
+-- Where | is the column end.
+-- ----------------------------------------------------
+-- ----------------------------------------------------
 
-														-- A new line was begun, add to the new line
-														--lineY = lineY + currentLineHeight + currentSpaceBefore
-														lineY = lineY + currentLineHeight
+													word = trimByAlignment(word)
 
-														if (textwrapIsCached) then
-															currentLine = word
-														else
-															cachedChunk.text[cachedChunkLine] = word
-															cachedChunk.width[cachedChunkLine] = wordlen
-														end
-														cachedChunkLine = cachedChunkLine + 1
+													if (textwrapIsCached) then
+														currentLine = word
+--													else
+--														cachedChunk.text[cachedChunkIndex] = word
+--														cachedChunk.width[cachedChunkIndex] = wordlen
+													end
+													--cachedChunkIndex = cachedChunkIndex + 1
 
 --print ("B")
 if (testing) then
@@ -1466,271 +1970,339 @@ if (testing) then
 	print ("B: render a word: "..word)
 	print ("\nrenderTextFromMargin reset to TRUE.")
 	print ("isFirstLine", isFirstLine)
-	print ("   newDisplayLine.y",lineY + baselineAdjustment, baselineAdjustment)
-	print ("   newDisplayLine HEIGHT:",newDisplayLine.height)
-	print ("leftIndent + currentFirstLineIndent + xOffset", leftIndent, currentFirstLineIndent, xOffset)
+	print ("   newDisplayLineGroup.y",lineY + baselineAdjustment, baselineAdjustment)
+	print ("leftIndent + currentFirstLineIndent + xOffset", settings.leftIndent, settings.currentFirstLineIndent, xOffset)
 end
 
-														local newDisplayLine = display.newText(word, x, lineY, font, size)
-														newDisplayLine:setTextColor(color[1], color[2], color[3])
-														newDisplayLine.alpha = opacity
-														result:insert(newDisplayLine)
-														newDisplayLine:setReferencePoint(textDisplayReferencePoint)
-
-				--print ("textAlignment",textAlignment)
-				--print ("x + leftIndent + currentFirstLineIndent + currentXOffset", x, leftIndent, currentFirstLineIndent, currentXOffset)
-														if (lower(textAlignment) ~= "right") then
-															newDisplayLine.x = x + leftIndent + currentFirstLineIndent + currentXOffset
-														else
-															newDisplayLine.x = x - currentXOffset
+													if (isFirstLine) then
+														currentLineHeight = lineHeight
+														currentSpaceBefore = settings.spaceBefore
+														isFirstLine = false
+														settings.currentFirstLineIndent = settings.firstLineIndent
+														if (renderTextFromMargin) then
+															lineY = lineY + currentLineHeight + currentSpaceBefore
 														end
-														newDisplayLine.y = lineY + baselineAdjustment
-														lineCount = lineCount + 1
-														currentLine = ''
---print ("B: newDisplayLine.y",lineY + baselineAdjustment)
-														-- This line has now wrapped around, and the next one should
-														-- start at the margin.
-													-- ????
-														--renderTextFromMargin = true
-														--currentXOffset = 0
-
-														if (isFirstLine) then
-															currentLineHeight = 0
-															isFirstLine = false
-														else
-															-- If this is the first line of a new paragraph, move to next line
-															currentLineHeight = lineHeight
-														end
-
-
-
-													end	-- end B
-
-
-
-
-													-- Get min characters to start with
-													-- We now know the max char width in a font,
-													-- so we can start with a minimum based on that.
-													-- IF the metric was set!
-													if (not textwrapIsCached and not fontInfo.maxHorizontalAdvance) then
-														-- Get stats for next line
-														-- Set the new min char count to the current line length, minus a few for protection
-														-- (20 is chosen from a few tests)
-														minLineCharCount = max(minLineCharCount - 20,1)
+													else
+														currentLineHeight = lineHeight
+														currentSpaceBefore = 0
+														settings.currentFirstLineIndent = 0
 													end
 
+
+													if (renderTextFromMargin) then
+														settings.currentLeftIndent = settings.leftIndent
+														xOffset = 0
+													else
+														xOffset = currentXOffset
+														settings.currentFirstLineIndent = 0
+														settings.currentLeftIndent = 0
+													end
+
+													local newDisplayLineGroup = display.newGroup()
+													--newDisplayLineGroup.anchorChildren = true
+													
+													local newDisplayLineText = display.newText({
+														parent = newDisplayLineGroup,
+														text = word,
+														x = 0, y = 0,
+														font = settings.font,
+														fontSize = settings.size,
+														align = textAlignmentForRender,
+													})
+
+													newDisplayLineText:setFillColor(unpack(settings.color))
+													newDisplayLineText:setReferencePoint(textDisplayReferencePoint)
+													newDisplayLineText.x, newDisplayLineText.y = 0, 0
+													--newDisplayLineText.alpha = settings.opacity
+
+													result:insert(newDisplayLineGroup)
+													newDisplayLineGroup:setReferencePoint(textDisplayReferencePoint)
+													newDisplayLineGroup.x, newDisplayLineGroup.y = x, lineY + baselineAdjustment
+
+													positionNewDisplayLineX(newDisplayLineGroup, xOffset, currentWidth)
+
+													lineCount = lineCount + 1
+													currentLine = ''
+
+													-- Use once, then set to zero.
+													settings.currentFirstLineIndent = 0
+
+													-- <A> tag box. If we make the text itself touchable, it is easy to miss it...your touch
+													-- goes through the white spaces around letter strokes!
+													createLinkingBox(newDisplayLineGroup, newDisplayLineText, textDisplayReferencePoint, currentLine, {250,0,250,30} )
+
+
+													-- CACHE this line
+													if (not textwrapIsCached) then
+														updateCachedChunk (cachedChunk, { 
+																	index = cachedChunkIndex, 
+																	text = word,
+																	width = tempLineWidth,
+																	x = newDisplayLineGroup.x,
+																	y = newDisplayLineGroup.y,
+																	font=settings.font,
+																	fontSize = settings.size,
+																	align = textAlignmentForRender,
+																	color = settings.color,
+																	lineHeight = lineHeight,
+																	lineY = lineY,
+																	currentSpaceBefore = currentSpaceBefore,
+																	xOffset = xOffset,
+																})
+													end
+													
+													cachedChunkIndex = cachedChunkIndex + 1
+
+
+													-- This is a line too long to fit,
+													-- so the next line surely must be the beginning
+													-- a new line. We know nothing can continue on this line because we've filled it up.
+													lineY = lineY + currentLineHeight
+
+													renderTextFromMargin = true
+													currentXOffset = 0
+
+												end	-- end B
+
+
+
+
+												-- Get min characters to start with
+												-- We now know the max char width in a font,
+												-- so we can start with a minimum based on that.
+												-- IF the metric was set!
+												if (not textwrapIsCached and not fontInfo.maxHorizontalAdvance) then
+													-- Get stats for next line
+													-- Set the new min char count to the current line length, minus a few for protection
+													-- (20 is chosen from a few tests)
+													settings.minLineCharCount = max(settings.minLineCharCount - 20,1)
 												end
-											end
 
-											if (not textwrapIsCached) then
-												display.remove(tempDisplayLine);
-												tempDisplayLine=nil;
 											end
-
-											shortword = ""
 										end
-
-									else
-										currentLine = tempLine
+										shortword = ""
 									end
-								end
 
-								---------------------------------------------
-								-- end for
-								---------------------------------------------
-
-
-
-
-								-- Allow for lines with beginning spaces, for positioning
-								if (substring(currentLine,1,1) == ".") then
-									currentLine = substring(currentLine,2,-1)
-								end
-
-								-- C: line render
-								-------- C: SHORT LINE or FINAL LINE OF PARAGRAPH
-								-- Add final line that didn't need wrapping
-								-- Add a space to deal with a weirdo bug that was deleting final words. ????
-
-								if (isFirstLine) then
-									currentLineHeight = 0
-									isFirstLine = false
-									lineY = lineY + currentSpaceBefore
 								else
-									-- If this is the first line of a new paragraph, move to next line
-									currentLineHeight = lineHeight
-
-									if (renderTextFromMargin) then
-										currentXOffset = 0
-										lineY = lineY + currentLineHeight + currentSpaceBefore
-									end
+									currentLine = tempLine
 								end
-
-								if (not textwrapIsCached) then
-									cachedChunk.text[cachedChunkLine] = currentLine
-									cachedChunk.width[cachedChunkLine] = currentWidth
-								end
-								cachedChunkLine = cachedChunkLine + 1
-
-
-if (testing) then
-	print ()
-	print ("----------------------------")
-	print ("C: Final line: ["..currentLine.."]", strlen(currentLine))
-	print ("\nStart at margin)", renderTextFromMargin)
-	print ("Previous Line:", "["..prevTextInLine.."]", strlen(prevTextInLine))
-	print ("isFirstLine", isFirstLine)
-	print ("lineY:",lineY)
-	print ("currentSpaceBefore:",currentSpaceBefore)
-	if (currentSpaceBefore > 0) then
-		print ("************")
-	end
-end
-								-- IF content remains, render it.
-								-- It is possible get the tailing space of block
-								if (strlen(currentLine) > 0) then
-
---print ("C: render a line:", currentLine)
-
-									local newDisplayLine = display.newText(currentLine, x, lineY, font, size)
-									newDisplayLine.alpha = opacity
-									result:insert(newDisplayLine)
-									newDisplayLine:setReferencePoint(textDisplayReferencePoint)
-
-									local ta = lower(textAlignment)
---print ("Warning: textwrap has alignment to the left for everything in C section.")
---ta = "left"
-
-									if (ta == "right") then
-										newDisplayLine.x = x + currentXOffset
-										currentXOffset = newDisplayLine.x - newDisplayLine.width
-
-if (testing) then
-	print ("* currentXOffset",currentXOffset)
-end										
-										--test:
-										--newDisplayLine.x = x
-										--currentXOffset = newDisplayLine.x + newDisplayLine.width
-										--newDisplayLine:setReferencePoint(display["BottomRightReferencePoint"])
-									elseif (ta == "center") then
-										-- position from left because there is a rect giving us 0,0 positioning
-										newDisplayLine.x = x + leftIndent + currentXOffset
-										--newDisplayLine.x = floor(currentWidth/2) + leftIndent + firstLineIndent
-
-										currentXOffset = newDisplayLine.x + newDisplayLine.width
-									else
-										newDisplayLine.x = x + leftIndent + currentXOffset
-										currentXOffset = newDisplayLine.x + newDisplayLine.width
-									end
-									newDisplayLine.y = lineY + baselineAdjustment
-									newDisplayLine:setTextColor(color[1], color[2], color[3])
-
-if (testing) then
-	print ("C:"..currentLine)
-	print ("   newDisplayLine.y",lineY + baselineAdjustment)
-	print ("   newDisplayLine HEIGHT:",newDisplayLine.height)
-	print ("  ")
-
-	newDisplayLine:setTextColor(0,250,100,255)
-end
-									-- Save the current line if we started at the margin
-									-- So the next line, if it has to, can start where this one ends.
-									prevTextInLine = prevTextInLine .. currentLine
-									currentLine = ""
-
-									-- Since line heights are not predictable, we capture the yAdjustment based on
-									-- the actual height the first rendered line of text
-									if (not yAdjustment) then
-										--yAdjustment = (size * fontInfo.ascent )- newDisplayLine.height
-										yAdjustment = ( (size / fontInfo.sampledFontSize ) * fontInfo.textHeight)- newDisplayLine.height
-									end
-									
-									-- NOT working for right/centered styled text!
-									-- *** This is needed so right/center justified lines are correctly positioned!!!
-									if (true) then
-										local w
-										if (renderTextFromMargin) then
-											w = currentWidth
-										else
-											w = currentWidth - newDisplayLine.width
-										end
-
-										if (ta == "left") then
-											w = newDisplayLine.width
-										end
-
-										-- compensate for the stroke
-										local r = display.newRect(0,0,w-2,newDisplayLine.height-2)
-										r:setStrokeColor(0,250,100,100)
-										r.strokeWidth=1
-										result:insert(r)
-										r:setReferencePoint(textDisplayReferencePoint)
-										r.x = newDisplayLine.x+1
-										r.y = newDisplayLine.y+1
-										r.isVisible = testing
-										r:setFillColor(0,255,0,0) -- transparent
-									end
-
-								end
-
-
-
-								cache[cacheChunkCtr] = cachedChunk
-								cacheChunkCtr = cacheChunkCtr + 1
-								return result
 							end
 
-							------------------------------------------------------------
-							-- end renderChunk
-							------------------------------------------------------------
+							---------------------------------------------
+							-- end for
+							---------------------------------------------
+
+
+							-- Allow for lines with beginning spaces, for positioning
+							if (usePeriodsForLineBeginnings and substring(currentLine,1,1) == ".") then
+								currentLine = substring(currentLine,2,-1)
+							end
+
+---------------------------------------------
+-- C: line render
+-- C: SHORT LINE or FINAL LINE OF PARAGRAPH
+-- Add final line that didn't need wrapping
+-- (note, we add a space to the text to deal with a weirdo bug that was deleting final words. ????)
+---------------------------------------------
+
+							-- IF content remains, render it.
+							-- It is possible get the tailing space of block
+							if (strlen(currentLine) > 0) then
+
+
+								if (testing) then
+									print ()
+									print ("----------------------------")
+									print ("C: Final line: ["..currentLine.."]", "length=" .. strlen(currentLine))
+									print ("Font: [".. settings.font .. "]")
+									print ("isFirstLine", isFirstLine)
+									print ("renderTextFromMargin: ", renderTextFromMargin)
+									print ("Width,", settings.width)
+									print ("C) currentWidth", currentWidth)
+
+								end
+
+
+								if (isFirstLine) then
+									isFirstLine = false
+									currentLineHeight = lineHeight
+									currentSpaceBefore = settings.spaceBefore
+									settings.currentFirstLineIndent = settings.firstLineIndent
+									-- If first line of a block of text, then we must start on a new line.
+									-- Jump to next line to start this text
+									if (renderTextFromMargin ) then
+										lineY = lineY + currentLineHeight + currentSpaceBefore
+									end
+									--renderTextFromMargin = true
+								else
+									currentLineHeight = lineHeight
+									settings.currentFirstLineIndent = 0
+									currentSpaceBefore = 0
+									-- Not first line in a block of text, there might be something before it on the line,
+									-- e.g. a Bold/Italic block, so do not jump to next row
+									--lineY = lineY + currentLineHeight
+								end
+
+								if (renderTextFromMargin) then
+									xOffset = 0
+									settings.currentLeftIndent = settings.leftIndent
+									renderTextFromMargin = false
+								else
+									xOffset = currentXOffset
+									settings.currentFirstLineIndent = 0
+									settings.currentLeftIndent = 0
+									--isFirstLine = false
+								end
+
+								-- We have the current line from the code above if this is not cached text.
+--								if (not textwrapIsCached) then
+--									cachedChunk.text[cachedChunkIndex] = currentLine
+--									cachedChunk.width[cachedChunkIndex] = currentWidth
+--								end
+--								cachedChunkIndex = cachedChunkIndex + 1
+
+
+								if (testing) then
+									print ("Previous Line:", "["..prevTextInLine.."]", strlen(prevTextInLine))
+									print ("lineY:",lineY)
+									print ("currentSpaceBefore:",currentSpaceBefore, settings.spaceBefore)
+									print ("currentSpaceAfter:",currentSpaceAfter, settings.spaceAfter)
+									if (currentSpaceBefore > 0) then
+										print ("************")
+									end
+								end
+
+								--print ("C: render a line:", currentLine)
+
+								local newDisplayLineGroup = display.newGroup()
+								--newDisplayLineGroup.anchorChildren = true
+								
+								currentLine = trimByAlignment(currentLine)
+								local newDisplayLineText = display.newText({
+									parent = newDisplayLineGroup,
+									text = currentLine,
+									x = 0, y = 0,
+									font = settings.font,
+									fontSize = settings.size,
+									align = textAlignmentForRender,
+								})
+								newDisplayLineText:setFillColor(unpack(settings.color))
+								newDisplayLineText:setReferencePoint(textDisplayReferencePoint)
+								newDisplayLineText.x, newDisplayLineText.y = 0, 0
+								--newDisplayLineText.alpha = settings.opacity
+
+								result:insert(newDisplayLineGroup)
+								newDisplayLineGroup:setReferencePoint(textDisplayReferencePoint)
+								newDisplayLineGroup.x = x
+								newDisplayLineGroup.y = lineY + baselineAdjustment
+
+								positionNewDisplayLineX(newDisplayLineGroup, xOffset, currentWidth)
+
+								-- We don't know if we have added a line...this text might be inside another line.
+								-- So we don't increment line count
+								-- lineCount = lineCount + 1
+
+								-- We know this is a short line, and it is possible the next chunk of text
+								-- will begin on the same line, so we capture the x value. So, set the
+								-- currentXOffset value so the next text starts in the right column.
+								setCurrentXOffset(newDisplayLineText, xOffset)
+
+								-- CACHE this line
+								if (not textwrapIsCached) then
+									updateCachedChunk (cachedChunk, { 
+												index = cachedChunkIndex, 
+												text = currentLine,
+												width = tempLineWidth,
+												x = newDisplayLineGroup.x,
+												y = newDisplayLineGroup.y,
+												font=settings.font,
+												fontSize = settings.size,
+												align = textAlignmentForRender,
+												color = settings.color,
+												lineHeight = lineHeight,
+												lineY = lineY,
+												currentSpaceBefore = currentSpaceBefore,
+												xOffset = xOffset,
+											})
+								end
+								
+								cachedChunkIndex = cachedChunkIndex + 1
 
 
 
 
-							local chunk = renderChunk()
-							result:insert(chunk)
+								-- Save the current line if we started at the margin
+								-- So the next line, if it has to, can start where this one ends.
+								prevTextInLine = prevTextInLine .. currentLine
 
+								-- Since line heights are not predictable, we capture the yAdjustment based on
+								-- the actual height the first rendered line of text
+								if (not yAdjustment or yAdjustment == 0) then
+									--yAdjustment = (settings.size * fontInfo.ascent )- newDisplayLineGroup.height
+									yAdjustment = ( (settings.size / fontInfo.sampledFontSize ) * fontInfo.textHeight)- newDisplayLineGroup.height
+								end
 
-							-- Restore style settings
-							-- If we came in with italics set, then the tag set the font
-							-- to bold-italic, this will restore the font back to italic.
-							--setStyleSettings(styleSettings)
+								createLinkingBox(newDisplayLineGroup, newDisplayLineText, textDisplayReferencePoint, currentLine, {250,0,0,30})
 
+								-- Clear the current line
+								currentLine = ""
+
+							end
+							
+							if (not textwrapIsCached) then
+								cache[cacheIndex] = cachedChunk
+							end
+							cacheIndex = cacheIndex + 1
 							return result
+							
+end
+
 						end -- renderParsedElement()
 
 					-- save the style settings as they are before
 					-- anything modifies them inside this tag.
-					-- *** LOCAL OR NOT??? I USED TO HAVE IT LOCAL, THEN NOT, NOW AGAIN... EEEK!
 					local styleSettings = getAllStyleSettings()
 
 					tag, attr = convertHeaders(tag, attr)
+					tag = lower(tag)
 
 					local listIdentDistance = 20
 
 					------------------------------------------------------------
 					-- Handle formatting tags: p, div, br
 					------------------------------------------------------------
-
+					
 					if (tag == "p" or tag == "div" or tag == "li" or tag == "ul" or tag == "ol") then
 
-						-- Apply style settings
+						-- Reset margins, cursor, etc. to defaults
 						renderTextFromMargin = true
 						currentXOffset = 0
-						local styleName = "MISSING"
+						x = 0
+						settings.leftIndent = 0
+						settings.rightIndent = 0
+						
+						-- Apply style based on tag, e.g. <ol> or <p>
+						if (textstyles and textstyles[tag] ) then
+							local params = textstyles[tag]
+							setStyleFromCommandLine (params)
+						end
+						
+						-- Next, apply style settings
+						local styleName = "Normal"
 						if (attr.class) then
 							styleName = lower(attr.class)
-						end
-						if (attr.class) then
-							if (myTextStyles and myTextStyles[styleName] ) then
-								local params = myTextStyles[styleName]
+							if (textstyles and textstyles[styleName] ) then
+								local params = textstyles[styleName]
 								setStyleFromCommandLine (params)
 							else
 								print ("WARNING: funx.autoWrappedText tried to use a missing text style ("..styleName..")")
 							end
 						end
 						setStyleFromTag (tag, attr)
+
+						currentSpaceBefore = settings.spaceBefore
+						currentSpaceAfter = settings.spaceAfter
+
 
 						-- LISTS
 						if (tag == "ol" or tag == "ul" ) then
@@ -1741,7 +2313,7 @@ end
 								-- Indent starting at 2nd level
 								indent = listIdentDistance
 							end
-							leftIndent = leftIndent + indent
+							settings.leftIndent = settings.leftIndent + indent
 							stacks.list.ptr =  stacks.list.ptr + 1
 							local b = ""
 							if (tag == "ul") then
@@ -1757,6 +2329,8 @@ end
 									b = "&#8211;"
 								elseif (attr.bullet == "mdash") then
 									b = "&#8212;"
+								elseif (attr.bullet == "none") then
+									b = ""
 								else
 									b = "&#9679;"
 								end
@@ -1766,18 +2340,27 @@ end
 						end
 
 					elseif (tag == "br") then
+ 					end
+
+					if (tag == "a") then
+						setStyleFromTag (tag, attr)
 					end
 
 
 					-- LIST ITEMS: add a bullet or number
 					if (tag == "li") then
 						-- default for list is a disk.
-						local t = stacks.list[stacks.list.ptr].bullet
+						local t = ""
 						-- If number, use the number instead
 						if (stacks.list[stacks.list.ptr].tag == "ol" ) then
 							t = stacks.list[stacks.list.ptr].line .. ". "
 							stacks.list[stacks.list.ptr].line = stacks.list[stacks.list.ptr].line + 1
+						else
+							t = stacks.list[stacks.list.ptr].bullet
+
 						end
+						-- add a space after the bullet
+						t = t .. " "
 						local e = renderParsedElement(1, t, "", "")
 						-- Add one to the element counter so the next thing won't be on a new line
 						elementCounter = elementCounter + 1
@@ -1786,23 +2369,31 @@ end
 
 
 					--endOfLine = false
-
 					for n, element in ipairs(parsedText) do
-
 						--local styleSettings = {}
 						if (type(element) == "table") then
+--print ("A-Tag",tag)
+							local saveStyleSettings = getAllStyleSettings()
+							-- Apply a font formatting tag, e.g. bold or italic
+							if (tag == "b" or tag == "i" or tag == "em" or tag == "strong" or tag == "font" ) then
+								setStyleFromTag (tag, attr)
+							end
+
 							local e = renderParsedText(element, element._tag, element._attr, parseDepth, stacks)
 							result:insert(e)
+							e.anchorX, e.anchorY = 0, 0
+							setStyleSettings(saveStyleSettings)
 						else
 							if (not element) then
 								print ("***** WARNING, EMPTY ELEMENT**** ")
 							end
-
+--print ("B-Tag",tag)
+							local saveStyleSettings = getAllStyleSettings()
 							local e = renderParsedElement(n, element, tag, attr)
-
 							result:insert(e)
-
+							e.anchorX, e.anchorY = 0, 0
 							elementCounter = elementCounter + 1
+							setStyleSettings(saveStyleSettings)
 						end
 
 					end -- end for
@@ -1813,35 +2404,43 @@ end
 						setStyleFromTag (tag, attr)
 						renderTextFromMargin = true
 						lineY = lineY + currentSpaceAfter
+						-- Reset the first line of paragraph flag
+						isFirstLine = true
 						--lineY = lineY + lineHeight + currentSpaceAfter
-			elementCounter = 1
+						elementCounter = 1
 					elseif (tag == "li") then
 						setStyleFromTag (tag, attr)
 						renderTextFromMargin = true
 						lineY = lineY + currentSpaceAfter
-			elementCounter = 1
+						-- Reset the first line of paragraph flag
+						isFirstLine = true
+						elementCounter = 1
 					elseif (tag == "ul") then
 						setStyleFromTag (tag, attr)
 						renderTextFromMargin = true
 						--lineY = lineY + lineHeight + currentSpaceAfter
-						--leftIndent = leftIndent - stacks.list[stacks.list.ptr].indent
+						--leftIndent = settings.leftIndent - stacks.list[stacks.list.ptr].indent
 						stacks.list[stacks.list.ptr] = nil
 						stacks.list.ptr = stacks.list.ptr -1
-			elementCounter = 1
+						elementCounter = 1
 					elseif (tag == "ol") then
 						setStyleFromTag (tag, attr)
 						renderTextFromMargin = true
 						--lineY = lineY + lineHeight + currentSpaceAfter
-						--leftIndent = leftIndent - stacks.list[stacks.list.ptr].indent
+						--leftIndent = settings.leftIndent - stacks.list[stacks.list.ptr].indent
 						stacks.list[stacks.list.ptr] = nil
 						stacks.list.ptr = stacks.list.ptr -1
-			elementCounter = 1
+						-- Reset the first line of paragraph flag
+						isFirstLine = true
+						elementCounter = 1
 					elseif (tag == "br") then
 						renderTextFromMargin = true
 						currentXOffset = 0
 						setStyleFromTag (tag, attr)
 						lineY = lineY + currentSpaceAfter
-			elementCounter = 1
+						-- Reset the first line of paragraph flag
+						isFirstLine = true
+						elementCounter = 1
 					elseif (tag == "#document") then
 						-- lines from non-HTML text will be tagged #document
 						-- and this will handle them.
@@ -1849,15 +2448,14 @@ end
 						currentXOffset = 0
 						setStyleFromTag (tag, attr)
 						lineY = lineY + currentSpaceAfter
---			elementCounter = 1
+--						elementCounter = 1
 					end
 
-					--print ("Restore style settings", color[1], tag)
+					--print ("Restore style settings", settings.color[1], tag)
 					-- Restore style settings to what they were before
 					-- entering the tag
 
 					setStyleSettings(styleSettings)
-
 					return result
 				end -- end function renderParsedText
 
@@ -1869,6 +2467,7 @@ end
 
 				local e = renderParsedText(parsedText, parsedText._tag, parsedText._attr)
 				result:insert(e)
+				e.anchorX, e.anchorY = 0, 0
 
 				-- This keeps centered/right aligned objects in the right place
 				-- The line is built inside a rect of the correct width
@@ -1886,7 +2485,7 @@ end
 			-- Render this chunk of XML
 			local oneXMLBlock = renderXML(restOLine)
 			result:insert(oneXMLBlock)
-
+			oneXMLBlock.anchorX, oneXMLBlock.anchorY = 0, 0
 
 		end -- html elements for one paragraph
 
@@ -1894,15 +2493,16 @@ end
 
 	-----------------------------
 	-- Finished rendering all blocks of text (all paragraphs).
+	-- Anchor the text block TOP-LEFT by default
 	-----------------------------
-
-	result:setReferencePoint(display.CenterReferencePoint)
+	result.anchorChildren = true
+	result.anchorX, result.anchorY = 0,0
 
 	--print ("textwrap.lua: yAdjustment is turned OFF because it wasn't working! No idea why.")
 	result.yAdjustment = yAdjustment
 	--print ("textDisplayReferencePoint",textDisplayReferencePoint)
 
-	saveTextWrapToCache(textUID, cache, cacheDir)
+	saveTextWrapToCache(textUID, cache, baselineCache, cacheDir)
 
 	return result
 end

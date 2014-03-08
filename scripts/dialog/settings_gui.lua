@@ -24,6 +24,9 @@
 
 --]]
 
+local funx = require( "funx" )
+
+
 --module table
 local M = {}
 

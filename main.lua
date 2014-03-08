@@ -1,3 +1,8 @@
+require( 'scripts.dmc.dmc_kolor' )
+require ( 'scripts.patches.refPointConversions' )
+
+local funx = require( "funx" )
+
 --------------------------------------------
 local screenW, screenH = display.contentWidth, display.contentHeight
 local viewableScreenW, viewableScreenH = display.viewableContentWidth, display.viewableContentHeight
@@ -54,6 +59,7 @@ function scene:createScene( event )
 
         -----------------------------------------------------------------------------
 		local r = display.newRect(group, 0,0,screenW,screenH)
+		funx.anchorTopLeftZero(r)
 
 			--- Show a dialog based on a button id.
 			local function OpenDialogButtonRelease(event)
@@ -168,3 +174,30 @@ settings_gui.init(system_settings, onUpdateSettings)
 --settings_gui.showSettingsDialog()
 
 settings_gui.showDialog("signinDialog")
+
+
+local testing = true
+		if (testing) then
+			local widget = require ( "widget" )
+			local wf = false
+			local function toggleWireframe()
+				wf = not wf
+				display.setDrawMode( "wireframe", wf )
+				if (not wf) then
+					display.setDrawMode( "forceRender" )
+				end
+				print ("WF = ",wf)
+			end
+		
+			local wfb = widget.newButton{
+						label = "WIREFRAME",
+						labelColor = { default={ 200, 1, 1 }, over={ 250, 0, 0, 0.5 } },
+						fontSize = 20,
+						x =10,
+						y=10,
+						onRelease = toggleWireframe,
+					}
+			wfb:toFront()
+			funx.anchorTopLeft(wfb)
+		end
+

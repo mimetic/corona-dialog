@@ -61,7 +61,7 @@
      "signout": false
     },
   "dialogTitle": "Sign In",
-  "dialogBackgroundColor": "230,230,230,100%",
+  "dialogBackgroundColor": "230,230,230,85%",
   "dialogTextInputFieldXOffset": "20%",
   "fieldLabelWidth": "20%",
   "fieldDescWidth": "70%",

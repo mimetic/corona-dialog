@@ -86,7 +86,7 @@
      "signin": true,
      "signout": false
     },
-  "dialogBackgroundColor": "230,230,230,100%",
+  "dialogBackgroundColor": "230,230,230,85%",
   "dialogWindowMargins": "5%, 5%, 5%, 5%",
   "dialogFontColor": "100,100,100,100%",
   "dialogTitle": "Settings",

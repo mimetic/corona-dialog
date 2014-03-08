@@ -87,15 +87,15 @@ function TLIB.new(params)
 
 	local padding = 20	-- default padding between elements
 
-	local x = funx.applyPercent(params.x, screenW) or padding
-	local y = funx.applyPercent(params.y, screenH) or padding
-	local w = funx.applyPercent(params.width, screenW) or 300
-	local h = funx.applyPercent(params.height, screenH) or 200
+	local x = funx.percentOfScreenWidth(params.x) or padding
+	local y = funx.percentOfScreenHeight(params.y) or padding
+	local w = funx.percentOfScreenWidth(params.width) or 300
+	local h = funx.percentOfScreenHeight(params.height) or 200
 			
 	local buttonDefault = params.default or "_ui/button-ios-70.png"
 	local buttonOver = params.over or "_ui/button-ios-70-over.png"
 
-	params.entryHeight = funx.applyPercent(params.entryHeight, screenH) or defaultSystemFontSize
+	params.entryHeight = funx.percentOfScreenHeight(params.entryHeight) or defaultSystemFontSize
 
 	params.margin = params.margin or {
 										top=padding,
@@ -104,17 +104,17 @@ function TLIB.new(params)
 										right=padding,
 									}
 									
-	params.margin.top = funx.applyPercent(params.margin.top, screenH)
-	params.margin.left = funx.applyPercent(params.margin.left, screenW)
-	params.margin.bottom = funx.applyPercent(params.margin.bottom, screenH)
-	params.margin.right = funx.applyPercent(params.margin.right, screenH)
+	params.margin.top = funx.percentOfScreenHeight(params.margin.top)
+	params.margin.left = funx.percentOfScreenWidth(params.margin.left)
+	params.margin.bottom = funx.percentOfScreenHeight(params.margin.bottom)
+	params.margin.right = funx.percentOfScreenHeight(params.margin.right)
 
 	T.onComplete = params.onComplete or nil
 	T.onCancel = params.onCancel or nil
 
-	local opacity = funx.applyPercent(params.dim,1) or 1
+	local c = "0,0,0," .. (params.dim or 0.75)
 	-- true means lock the background against touches
-	T.dim = funx.dimScreen(nil, nil, opacity, nil, true)
+	T.dim = funx.dimScreen(nil, c, nil, true)
 
 
 
@@ -216,7 +216,7 @@ function TLIB.new(params)
 		-- Show dialog title
 		title = display.newText(funx.trim(params.title), 0, 0, native.systemFontBold, defaultSystemFontSize )
 		local c = funx.stringToColorTable(params.fontcolor or {0,0,0,255} )
-		title:setTextColor( c[1],c[2],c[3],c[4] )
+		title:setFillColor( c[1],c[2],c[3],c[4] )
 
 		-- submit and cancel buttons
 		local submit = widget.newButton{
@@ -334,14 +334,14 @@ function TLIB.new(params)
 
 		T.bkgd = dialogBackground(params)
 		
-		params.entryWidth = funx.applyPercent(params.entryWidth, screenW) or (T.bkgd.width - (params.margin.left + params.margin.right ))
-		params.entryHeight = funx.applyPercent(params.entryHeight, screenH) or defaultSystemFontSize
+		params.entryWidth = funx.percentOfScreenWidth(params.entryWidth) or (T.bkgd.width - (params.margin.left + params.margin.right ))
+		params.entryHeight = funx.percentOfScreenHeight(params.entryHeight) or defaultSystemFontSize
 		T.field = dialogTextField(params)
 	else
 		-- TEXT BOX
 		T.bkgd = dialogBackground(params)
-		params.entryWidth = funx.applyPercent(params.entryWidth, screenW) or (T.bkgd.width - (params.margin.left + params.margin.right ))
-		params.entryHeight = funx.applyPercent(params.entryHeight, screenH) or defaultSystemFontSize*3
+		params.entryWidth = funx.percentOfScreenWidth(params.entryWidth) or (T.bkgd.width - (params.margin.left + params.margin.right ))
+		params.entryHeight = funx.percentOfScreenHeight(params.entryHeight) or defaultSystemFontSize*3
 
 		T.field = dialogTextBox(params)
 	end

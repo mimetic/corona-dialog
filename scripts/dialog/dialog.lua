@@ -68,6 +68,11 @@ Input Types in the structure:
 
 --]]
 
+require( 'scripts.dmc.dmc_kolor' )
+require ( 'scripts.patches.refPointConversions' )
+
+
+
 local S = { window = {} };
 
 local pathToModule = "scripts/dialog/"
@@ -84,6 +89,8 @@ local DIALOG_VALUES_FILE = "dialog.values.json"
 
 -- Get dialog module default settings
 S.settings = settingsLib.new(pathToModule.."dialog.settings.default.xml", system.ResourceDirectory)
+
+local headerRectBackgroundColor = "1,1,1,1"
 
 -------------------------------------------------
 -- Load text formatting styles used by funx.lua text formatting
@@ -323,7 +330,7 @@ function S:makeTextBlock(windowName, params)
 			cacheDir = "",
 		}
 		textblock = funx.autoWrappedText( p )
-		textblock:setReferencePoint(display.TopLeftReferencePoint)
+		funx.anchorTopLeft(textblock)
 		return textblock
 	end
 end
@@ -421,7 +428,7 @@ function S:makeButton(windowName, params)
 
 	local onRelease = callExternalFunction
 	local id = params.id
-	
+
 	if (params.buttonType == "cancel") then
 		onRelease = cancelDialogButtonRelease
 		id = windowName
@@ -430,18 +437,66 @@ function S:makeButton(windowName, params)
 		id = windowName
 	end
 
-	local button = widget.newButton{
-		id = id,
-		width = params.width,
-		height = params.height,
-		label = params.label,
-		onRelease = onRelease,
-	}
-	button:setReferencePoint(display.TopLeftReferencePoint)
+	print ("params.label", params.label)
+	local defaultColor = funx.split(params.labelDefaultColor) or {0,0,0}
+	local defaultOverColor = funx.split(params.labelOverColor) or {0,180,250,250}
+	
+	local button
+	
+	if (params.isSliceButton) then
+
+		local sheetInfo = require("scripts.dialog.images.buttonDefault9Slice")
+		local buttonSheet = graphics.newImageSheet( "scripts/dialog/images/buttonDefault9Slice.png", sheetInfo:getSheet() )
+
+		button = widget.newButton{
+			id = id,
+			width = params.width,
+			height = params.height,
+			label = params.label,
+			onRelease = onRelease,
+			labelColor = { default=defaultColor, over=defaultOverColor },
+			labelYOffset = params.labelYOffset or -5,
+		
+			sheet = buttonSheet,
+			topLeftFrame = sheetInfo.frameIndex.buttonDefault_topleft,
+			topMiddleFrame = sheetInfo.frameIndex.buttonDefault_top,
+			topRightFrame = sheetInfo.frameIndex.buttonDefault_topright,
+			middleLeftFrame = sheetInfo.frameIndex.buttonDefault_left,
+			middleFrame = sheetInfo.frameIndex.buttonDefault_mid,
+			middleRightFrame = sheetInfo.frameIndex.buttonDefault_right,
+			bottomLeftFrame = sheetInfo.frameIndex.buttonDefault_bottomleft,
+			bottomMiddleFrame = sheetInfo.frameIndex.buttonDefault_bottom,
+			bottomRightFrame = sheetInfo.frameIndex.buttonDefault_bottomright,
+		
+			topLeftOverFrame = sheetInfo.frameIndex.buttonSelected_topleft,
+			topMiddleOverFrame = sheetInfo.frameIndex.buttonSelected_top,
+			topRightOverFrame = sheetInfo.frameIndex.buttonSelected_topright,
+			middleLeftOverFrame = sheetInfo.frameIndex.buttonSelected_left,
+			middleOverFrame = sheetInfo.frameIndex.buttonSelected_mid,
+			middleRightOverFrame = sheetInfo.frameIndex.buttonSelected_right,
+			bottomLeftOverFrame = sheetInfo.frameIndex.buttonSelected_bottomleft,
+			bottomMiddleOverFrame = sheetInfo.frameIndex.buttonSelected_bottom,
+			bottomRightOverFrame = sheetInfo.frameIndex.buttonSelected_bottomright,		
+		}
+			
+	else
+		button = widget.newButton{
+			id = id,
+			width = params.width,
+			height = params.height,
+			label = params.label,
+			onRelease = onRelease,
+			labelColor = { default=defaultColor, over=defaultOverColor },
+		}
+	
+	end
+	
+	
+	funx.anchorTopLeft(button)
 	if (params.xAlign == "right") then
-		button:setReferencePoint(display.TopRightReferencePoint)
+		funx.anchorTopRightZero(button)
 	elseif (params.xAlign == "center") then
-		button:setReferencePoint(display.TopCenterReferencePoint)
+		funx.anchorTopCenter(button)
 	end
 
 	return button
@@ -470,11 +525,11 @@ function S:replaceButton(windowName, id, params, subs)
 			local button = S:makeButton(windowName, p)
 			self.window[windowName].elements.buttons[id].button = button
 			g:insert(button)
-			button:setReferencePoint(display.TopLeftReferencePoint)
+			funx.anchorTopLeft(button)
 			if (p.xAlign == "right") then
-				button:setReferencePoint(display.TopRightReferencePoint)
+				funx.anchorTopRight(button)
 			elseif (p.xAlign == "center") then
-				button:setReferencePoint(display.TopCenterReferencePoint)
+				funx.anchorTopCenter(button)
 			end
 			button.x = x
 			button.y = y
@@ -623,7 +678,7 @@ function S.new(params)
 			}
 			descText = funx.autoWrappedText( p )
 			g:insert(descText)
-			descText:setReferencePoint(display.TopLeftReferencePoint)
+			funx.anchorTopLeft(descText)
 			descText.x = x
 			descText.y = y + descText.yAdjustment
 			y = y + descText.height + funx.percentOfScreenHeight(dialogDefinition.spaceAfterDesc or settings.dialog.spaceAfterDesc)
@@ -646,7 +701,7 @@ function S.new(params)
 			}
 			labelText = funx.autoWrappedText( p )
 			g:insert(labelText)
-			labelText:setReferencePoint(display.TopLeftReferencePoint)
+			funx.anchorTopLeft(labelText)
 			labelText.x = x
 			labelText.y = y + labelText.yAdjustment
 		end
@@ -660,7 +715,7 @@ function S.new(params)
 		-- If the dialog slides in, this is good because the text field could be show AFTER
 		-- the dialog is drawn, and it will appear as if the fields were there all along.
 		local fieldFrame = display.newRect(g, 0,0, fieldWidth, h)
-		fieldFrame:setReferencePoint(display.TopLeftReferencePoint)
+		funx.anchorTopLeft(fieldFrame)
 		fieldFrame.x = fieldX
 		fieldFrame.y = y
 
@@ -668,10 +723,10 @@ function S.new(params)
 		fieldFrame.strokeWidth  = 2*(f.strokeWidth or (settings.dialog.fieldFrameStrokeWidth or 1))
 		-- Stroke Color
 		local color =  funx.stringToColorTable (f.strokeColor or (settings.dialog.fieldFrameStrokeColor or "0,0,0,100%"))
-		fieldFrame:setStrokeColor(color[1], color[2], color[3], color[4])
+		fieldFrame:setStrokeColor(unpack(color))
 		-- Background color
 		local color =  funx.stringToColorTable (f.background or (settings.dialog.fieldFrameBackground or "0,0,0,100%"))
-		fieldFrame:setFillColor(color[1], color[2], color[3], color[4])
+		fieldFrame:setFillColor(unpack(color))
 
 
 		-- convert y to screen y, but to center of object, not Top Left
@@ -687,13 +742,13 @@ function S.new(params)
 			local textField = native.newTextBox( 0, 0, fieldWidth, h )
 			textField:setReturnKey('default')
 			textField.isEditable = true
-			textField:setReferencePoint(display.TopLeftReferencePoint)
+			funx.anchorTopLeft(textField)
 			textField.x = xScreen
 			textField.y = yScreen
 			textField.font = native.newFont( font, fontsize )
 
 			local color =  funx.stringToColorTable (f.textColor or (settings.dialog.fieldTextColor or "0,0,0,100%"))
-			textField:setTextColor(color[1], color[2], color[3], color[4])
+			textField:setFillColor(unpack(color))
 			value = value or ""
 			textField.text = value
 			textField.isConfirmation = confirms	-- ID of the field it confirms or nil
@@ -706,13 +761,13 @@ function S.new(params)
 			-- Create the native textfield
 			local textField = native.newTextField( 0, 0, fieldWidth, fontsize * 2 )
 			textField:setReturnKey('next')
-			textField:setReferencePoint(display.TopLeftReferencePoint)
+			funx.anchorTopLeft(textField)
 			textField.x = xScreen
 			textField.y = yScreen
 			textField.inputType = inputType or "default"
 			textField.font = native.newFont( font, fontsize )
 			local color =  funx.stringToColorTable (f.textColor or (settings.dialog.fieldTextColor or "0,0,0,100%"))
-			textField:setTextColor(color[1], color[2], color[3], color[4])
+			textField:setTextColor(unpack(color))
 			value = value or ""
 			textField.text = value
 			textField.isSecure = isSecure
@@ -739,10 +794,11 @@ function S.new(params)
 
 		-- A positioning obj for this group, to maintain the top.
 		local headerRect = display.newRect(g, 0, 0, 0, 0)
-		headerRect:setReferencePoint(display.TopLeftReferencePoint)
+		funx.anchorTopLeft(headerRect)
 		headerRect.x = 0
 		headerRect.y = 0
-		headerRect:setFillColor(255,255,255,250)
+		local color = funx.stringToColorTable (settings.dialog.headerBackground or "255,255,255,100%" )
+		headerRect:setFillColor(unpack(color))
 
 		local linespace = funx.percentOfScreenHeight(dialogDefinition.dialogTextLineHeight or settings.dialog.dialogTextLineHeight)
 		local spaceafter = funx.percentOfScreenHeight(dialogDefinition.dialogTextSpaceAfter or settings.dialog.dialogTextSpaceAfter)
@@ -785,12 +841,12 @@ function S.new(params)
 				elements.buttons[f.id].button = button
 				g:insert(button)
 				-- Position the block
-				button:setReferencePoint(display.TopLeftReferencePoint)
+				funx.anchorTopLeft(button)
 				if (f.xAlign == "right") then
-					button:setReferencePoint(display.TopRightReferencePoint)
+					funx.anchorTopRightZero(button)
 					x = backgroundWidth - innermargins.right
 				elseif (f.xAlign == "center") then
-					button:setReferencePoint(display.TopCenterReferencePoint)
+					funx.anchorTopCenter(button)
 					x = backgroundWidth/2
 				end
 				button.x = x
@@ -825,8 +881,8 @@ function S.new(params)
 				local color =  funx.stringToColorTable (f.color or "0,0,0,100%")
 				if (f.isLine) then
 					thisElement = display.newLine( g, x,y, x2,y )
-					thisElement:setColor(color[1], color[2], color[3], color[4])
-					thisElement.width = f.width or 1
+					thisElement:setStrokeColor(unpack(color))
+					thisElement.strokeWidth = f.strokeWidth or 1
 				end
 				elements.objects[f.id] = thisElement
 				y = y + hh
@@ -889,7 +945,7 @@ function S.new(params)
 		if (g) then
 			g:insert(text)
 		end
-		text:setReferencePoint( display.TopLeftReferencePoint )
+		funx.anchorTopLeft(text)
 		text.x = x
 		text.y = y + text.yAdjustment
 
@@ -905,29 +961,23 @@ function S.new(params)
 		local g = display.newGroup()
 
 		-- full-screen positioning rect
-		local r = display.newRect(g,0,0,w,h)
-	local testing = false
-		r.isVisible = testing
-		r:setFillColor(240,0,0,50)
-		r:setReferencePoint( display.TopLeftReferencePoint )
-		r.x = 0
-		r.y = 0
+		funx.addPosRect(g)
 
 		-- Header background, also serves as a positioning obj for this group, to maintain
 		-- the top.
 		local headerRect = display.newRoundedRect(g, 0, 0, w,settings.dialog.headerHeight, settings.dialog.cornerRadius )
-		headerRect:setReferencePoint(display.TopLeftReferencePoint)
+		funx.anchorTopLeft(headerRect)
 		headerRect.x = 0
 		headerRect.y = 0
 		local color = funx.stringToColorTable (settings.dialog.headerBackground or "255,255,255,100%" )
-		headerRect:setFillColor(color[1], color[2], color[3], color[4])
+		headerRect:setFillColor(unpack(color))
 		headerRect:toBack()
 		-- A normal rect to unround the bottom corners
 		local fixCornersRect = display.newRect(g, 0, 0, w, settings.dialog.cornerRadius )
-		fixCornersRect:setReferencePoint(display.TopLeftReferencePoint)
+		funx.anchorTopLeft(fixCornersRect)
 		fixCornersRect.x = 0
 		fixCornersRect.y = headerRect.height - settings.dialog.cornerRadius
-		fixCornersRect:setFillColor(color[1], color[2], color[3], color[4])
+		fixCornersRect:setFillColor(unpack(color))
 		fixCornersRect:toBack()
 
 
@@ -948,7 +998,7 @@ function S.new(params)
 		g:insert(titleText)
 
 		-- title
-		titleText:setReferencePoint( display.TopLeftReferencePoint )
+		funx.anchorTopLeft(titleText)
 		local color =  funx.stringToColorTable (settings.dialog.dialogTitleFontColor)
 		titleText.x = innermargins.left
 		titleText.y = innermargins.top
@@ -978,16 +1028,12 @@ function S.new(params)
 		-- Add a transparent layer to dim what is behind the dialog
 		local dimmer = display.newRect(bkgd, 0,0,screenW,screenH)
 		local color = funx.stringToColorTable (settings.dialog.dimmerColor or "0,0,0,50%" )
-		dimmer:setFillColor(color[1], color[2], color[3], color[4])
-		dimmer:setReferencePoint( display.TopLeftReferencePoint )
-		dimmer.x = 0
-		dimmer.y = 0
+		dimmer:setFillColor(unpack(color))
+		funx.anchorTopLeftZero(dimmer)
+		group._dimmer = dimmer
 
 		-- DIMMER gives us positioning on the screen at top/left, now we can lock down
 		-- bkgd location
-		bkgd:setReferencePoint( display.TopLeftReferencePoint )
-		bkgd.x = 0
-		bkgd.y = 0
 
 		-- The structure of the dialog is a JSON file in the system folder
 		local filename
@@ -1017,30 +1063,17 @@ function S.new(params)
 			S.window[windowName].margins = margins
 			S.window[windowName].innermargins = innermargins
 
-			local backgroundColor = dialogDefinition.dialogBackgroundColor or settings.dialog.dialogBackgroundColor
-			local rrectCorners = settings.dialog.cornerRadius
-
 
 			local x,y
 
 			local bkgdWidth = screenW - margins.left - margins.right
 			local bkgdHeight = screenH - margins.top - margins.bottom
 
-			-- BACKGROUND Rounded Rect for whole dialog
-			local r = display.newRoundedRect(bkgd, margins.left, margins.top, bkgdWidth, bkgdHeight, rrectCorners)
-			local color = funx.stringToColorTable (backgroundColor)
-			r:setFillColor(unpack(color))
-			bkgd.background = r
-			r:setReferencePoint( display.TopLeftReferencePoint )
-			r.x = margins.left
-			r.y = margins.top
-
-
 			-- Background elements, such as backgrounds, title, fixed buttons
 			local dialogBackgroundElements = buildBackgroundElements(bkgdWidth, bkgdHeight, dialogDefinition)
 			bkgd:insert(dialogBackgroundElements)
 			bkgd.dialogBackgroundElements = dialogBackgroundElements
-			dialogBackgroundElements:setReferencePoint( display.TopLeftReferencePoint )
+			funx.anchorTopLeft(dialogBackgroundElements)
 
 			dialogBackgroundElements.x = margins.left
 			dialogBackgroundElements.y = margins.top
@@ -1067,9 +1100,9 @@ function S.new(params)
 					onRelease = closeDialogButtonRelease,
 				}
 				bkgd:insert(submitButton)
-				submitButton:setReferencePoint(display.TopRightReferencePoint)
+				funx.anchorTopRightZero(submitButton)
 				-- allow 10 px for the shadow of the popup background
-				--r:setReferencePoint(display.TopRightReferencePoint)
+				--funx.anchorTopRightZero(r)
 
 				-- top right corner
 				--submitButton.x = midscreenX + (bkgdWidth/2) + (submitButton.width/2)
@@ -1078,7 +1111,7 @@ function S.new(params)
 
 				-- Inside top right
 				submitButton.x = margins.left + bkgdWidth - padding
-				submitButton.y = r.y + padding
+				submitButton.y = margins.top + padding
 
 				xOffset = submitButton.width + padding
 			end
@@ -1103,7 +1136,7 @@ function S.new(params)
 
 				--[[
 				-- top right on edge
-				cancelButton:setReferencePoint(display.TopRightReferencePoint)
+				funx.anchorTopRightZero(cancelButton)
 				-- allow 10 px for the shadow of the popup background
 				cancelButton.x = midscreenX + (bkgdWidth/2) + (cancelButton.width/2) - cancelButton.width - padding
 				--cancelButton.y = midscreenY - (bkgdHeight)/2 - (cancelButton.width/2)
@@ -1111,12 +1144,11 @@ function S.new(params)
 				--]]
 
 				-- top right inside
-				cancelButton:setReferencePoint(display.TopRightReferencePoint)
+				funx.anchorTopRightZero(cancelButton)
 				-- allow 10 px for the shadow of the popup background
 				cancelButton.x = margins.left + bkgdWidth  - xOffset - padding
 				--cancelButton.y = midscreenY - (bkgdHeight)/2 - (cancelButton.width/2)
-				r:setReferencePoint(display.TopRightReferencePoint)
-				cancelButton.y = r.y + padding
+				cancelButton.y = margins.top + padding
 			end
 
 		else
@@ -1139,7 +1171,6 @@ function S.new(params)
 			local x,y
 
 			local bkgd = group.bkgd
-			bkgd:setReferencePoint( display.CenterReferencePoint )
 
 			-- a string in the form, L,T,R,B
 			local margins = S.window[windowName].margins
@@ -1219,13 +1250,13 @@ function S.new(params)
 
 			group:insert(dialogElementsGroup)
 			group.elements = dialogElementsGroup
-			dialogElementsGroup:setReferencePoint(display.TopLeftReferencePoint)
+			funx.anchorTopLeft(dialogElementsGroup)
 			--dialogElementsGroup.x = margins.left
 			--dialogElementsGroup.y = margins.top
 
 			S.window[windowName].elements = makeDialogElements(dialogElementsGroup, windowName, dialogDefinition, bkgdWidth, bkgdHeight, x,y, conditions )
 
-			dialogElementsGroup:setReferencePoint(display.TopLeftReferencePoint)
+			funx.anchorTopLeft(dialogElementsGroup)
 			dialogElementsGroup.x = margins.left
 			dialogElementsGroup.y = margins.top + innermargins.top
 
@@ -1235,10 +1266,22 @@ function S.new(params)
 			S.window[windowName].exists = true
 
 			-- resize the background rect of the dialog to fit
-			local  y = bkgd.background.y
-			bkgd.background.height = dialogElementsGroup.contentHeight + innermargins.top +  innermargins.bottom
-			bkgd.background:setReferencePoint(display.TopLeftReferencePoint)
-			bkgd.background.y = y
+			bkgdHeight = dialogElementsGroup.contentHeight + innermargins.top +  innermargins.bottom
+			
+			-- ------------------------
+			-- BACKGROUND Rounded Rect for whole dialog
+			local backgroundColor = dialogDefinition.dialogBackgroundColor or settings.dialog.dialogBackgroundColor
+			local rrectCorners = settings.dialog.cornerRadius
+
+			local r = display.newRoundedRect(bkgd, margins.left, margins.top, bkgdWidth, bkgdHeight, rrectCorners)
+			local color = funx.stringToColorTable (backgroundColor)
+			r:setFillColor(unpack(color))
+			bkgd.background = r
+			funx.anchorTopLeft(r)
+			r:toBack()
+			
+			group._dimmer:toBack()
+
 
 
 		end	-- end if dialog definition

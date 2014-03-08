@@ -23,7 +23,7 @@
 	<class value="dialog">
 
 		<!-- dims everything behind the dialog -->
-		<dimmerColor value="0,0,0,50%" />
+		<dimmerColor value="0,0,0,60%" />
 		
 		<msgDialogBookstore>You are connected to {bookstore}.</msgDialogBookstore>
 		<msgDialogSignin>To download your books from the bookstore, enter your username and password below:</msgDialogSignin>
