@@ -3,7 +3,7 @@
     {
       "isText": true,
       "id": "store",
-      "text": "You are connected to the bookstore <span font='Avenir-Black'>{bookstore}.</span>",
+      "text": "You are connected to the bookstore <span font='Avenir-Black'>{{shelves:bookstore}}.</span>",
       "style": "dialogLargeDescription"
     },
     {
@@ -16,7 +16,7 @@
     {
       "isText": true,
       "id": "username",
-      "text": "You are signed in as <span font='Avenir-Black'>{username}</span> (<span font='Avenir-Black'>{displayname}</span>)",
+      "text": "You are signed in as <span font='Avenir-Black'>{{currentuser:username}}</span> (<span font='Avenir-Black'>{{currentuser:displayname}}</span>)",
       "style": "dialogLargeDescription"
     },
     {
@@ -86,8 +86,9 @@
      "signin": true,
      "signout": false
     },
-  "dialogBackgroundColor": "230,230,230,85%",
-  "dialogWindowMargins": "5%, 5%, 5%, 5%",
+  "dialogBackgroundColor": "230,230,230,100%",
+  "dialogInnerMargins": "2%, 2%, 2%, 2%",
+  "dialogWindowMargins": "5%, 5%, 15%, 5%",
   "dialogFontColor": "100,100,100,100%",
   "dialogTitle": "Settings",
   "dialogTextInputFieldXOffset": "25%",

@@ -107,8 +107,6 @@ local function getUserInfo(url, username, password, onSuccess, onFailure)
 		end
 
 	--------------------------------------------
-	local username = results.username
-	local password = results.password
 	local url = "http://localhost/photobook/wordpress/"
 
 	mb_api.getUserInfo(url, username, password, onSuccess, onError)
@@ -213,7 +211,7 @@ local function signin_user(results)
 		function onError(mb_api_result)
 			funx.tellUser(mb_api_result.error)
 			print ("signin_user: ERROR")
-			funx.dump(mb_api_result)
+funx.dump(mb_api_result)
 			-- Set the conditionals for this dialog
 			dialog.window[signInDialogName].conditions.authorized = false
 			showSettingsDialog()
@@ -329,6 +327,10 @@ local function createNewAccount(results)
 					lastname = mb_api_result.lastname,
 					displayname = mb_api_result.displayname,
 				}
+				
+				-- ***** THIS VALUE???? 
+				local showSavedFeedback = false
+				
 				dialog:addValuesToDocuments(newAccountDialogName, newvalues, showSavedFeedback)
 				-- Update the settings dialog, too!
 				dialog:addValuesToDocuments(signInDialogName, newvalues, showSavedFeedback)
@@ -468,8 +470,8 @@ end
 
 local function signOutUserInSettings()
 
-	currentUserName = ""
-	currentUserFullName = ""
+	local currentUserName = ""
+	local currentUserFullName = ""
 
 	-- Update the username text block
 	local dialogName = "settings"

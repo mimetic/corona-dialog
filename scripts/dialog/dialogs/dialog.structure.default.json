@@ -3,7 +3,7 @@
     {
       "isText": true,
       "id": "store",
-      "text": "You are connected to the bookstore {bookstore}.",
+      "text": "You are connected to {{shelves:bookstore}}.",
       "style": "dialogLargeDescription"
     },
     {
@@ -40,9 +40,9 @@
       "fieldType": "textfield"
     }
   ],
-  "dialogBackgroundColor": "230,230,230,85%",
-  "dialogInnerMargins": "8%, 8%, 8%, 8%",
-  "dialogWindowMargins": "5%, 15%, 5%, 5%",
+  "dialogBackgroundColor": "230,230,230,100%",
+  "dialogInnerMargins": "2%, 2%, 2%, 2%",
+  "dialogWindowMargins": "5%, 5%, 15%, 5%",
   "dialogTextInputFieldsTop": "",
   "dialogFont": "Avenir-Light",
   "dialogFontSize": 18,

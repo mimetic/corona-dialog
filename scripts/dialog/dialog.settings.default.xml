@@ -30,6 +30,22 @@
 		<msgDialogChildLock>To lock books which are rated appropriate for 18+ years of age, enter a lock code below:</msgDialogChildLock>
 		<msgConfirmFieldDoesNotMatch>The confirmation does not match!</msgConfirmFieldDoesNotMatch>
 
+
+		<!-- "Done" button settings, used with text boxes -->
+		<textboxDoneLabel value="Done" />
+		<textboxDoneLabelFont value="AvenirNext-Regular" />
+		<textboxDoneFontSize value="Done" />
+		<textboxDoneWidth value="50" />
+		<textboxDoneHeight value="20" />
+		<textboxDoneLabelColor value="250,250,250" />
+		<textboxDoneLabelOverColor value="250,250,250" />
+		<textboxDoneFillColor value="45,138,228" />
+		<textboxDoneStrokeColor value="20%,20%,20%" />
+		<textboxDoneStroke value="1" />
+		<textboxDoneCornerRadius value="2" />
+		<textboxDoneEmboss value="false" />
+		
+
 		<!-- margins are percent of width of screen: margins are T,L,B,R -->
 		<dialogWindowMargins value="5%, 5%, 5%, 5%" />
 		<dialogInnerMargins value="2%, 2%, 3%, 2%" />
@@ -90,7 +106,7 @@
 		<dialogButtonLabel value="" />
 		<dialogButtonLabelFont value="Avenir-Medium" />
 		<dialogButtonLabelFontSize value="12" />
-		<dialogButtonLabelFontColor value="120,120,120,100%" />
+		<dialogButtonLabelFontColor value="120,120,220,100%" />
 		<dialogButtonLabelFontOverColor value="120,120,120,100%" />
 
 		<!-- close button -->

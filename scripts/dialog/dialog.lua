@@ -69,7 +69,7 @@ Input Types in the structure:
 --]]
 
 require( 'scripts.dmc.dmc_kolor' )
-require ( 'scripts.patches.refPointConversions' )
+--require ( 'scripts.patches.refPointConversions' )
 
 
 
@@ -79,9 +79,10 @@ local pathToModule = "scripts/dialog/"
 
 local widget = require "widget"
 local settingsLib = require("settings")
---local onSwipe = require("onSwipe")
+--local onTouch = require("onTouch")
 local funx = require ("funx")
 
+local OPAQUE = 255
 
 local storyboard = require "storyboard"
 
@@ -199,7 +200,7 @@ function S:addValuesToDocuments(name, results, showSavedFeedback)
 		local all_results = funx.loadTable(DIALOG_VALUES_FILE, system.DocumentsDirectory) or {}
 		all_results[name] = funx.tableMerge(all_results[name], results)
 		local res = funx.saveTable(all_results, DIALOG_VALUES_FILE, system.DocumentsDirectory)
-		if (res and showDialogFeedback) then
+		if (res and showSavedFeedback) then
 			funx.tellUser("Saved")
 		elseif (not res) then
 			funx.tellUser("SYSTEM ERROR: Could not save the results to "..DIALOG_VALUES_FILE)
@@ -210,13 +211,13 @@ end
 -- A function the dialog can call with the results,
 -- to save them or use them.
 -- The alternative is to check "storyboard.dialogResults" which is set by the dialog.
-function saveValuesToDocuments(name, results, showSavedFeedback)
+local function saveValuesToDocuments(name, results, showSavedFeedback)
 	--funx.dump(results)
 	if (results) then
 		local all_results = funx.loadTable(DIALOG_VALUES_FILE, system.DocumentsDirectory) or {}
 		all_results[name] = results
 		local res = funx.saveTable(all_results, DIALOG_VALUES_FILE, system.DocumentsDirectory)
-		if (res and showDialogFeedback) then
+		if (res and showSavedFeedback) then
 			funx.tellUser("Saved")
 		elseif (not res) then
 			funx.tellUser("SYSTEM ERROR: Could not save the results to "..DIALOG_VALUES_FILE)
@@ -227,8 +228,12 @@ end
 
 --- Get native field values
 -- If no scene name is provided, the current scene is used
+-- (Confirmation fields, e.g. write the password twice to be sure.)
 -- If a confirmation field doesn't match, don't return the value of the source field
 -- Also, don't return the confirmation field as a value
+-- Pass through the "pass-through" values set when the dialog was called (not created!), in the
+-- 'vars' sub-table.
+-- e.g. an id value.
 
 function S:getFieldValues(windowName)
 	local windowName = windowName or storyboard.getCurrentSceneName()
@@ -249,7 +254,9 @@ function S:getFieldValues(windowName)
 				r[id] = nil
 			end
 		end
-
+		
+		-- Add in the pass-through variables
+		r.vars = self.window[windowName].params.vars
 	end
 	return r
 end
@@ -281,8 +288,6 @@ function S:updateDialogByConditions(windowName, conditions)
 	local dialogDefinition = S.window[windowName].dialogDefinition
 	if (self.window[windowName] and self.window[windowName].elements ) then
 		for id,f in pairs(self.window[windowName].elements.all) do
-			local c = f.condition
-			local cc = conditions[f.condition]
 			if (f.condition and not conditions[f.condition]) then
 				f.isVisible = false
 				--print ("updateDialogByConditions: Hide ",id)
@@ -317,20 +322,21 @@ function S:makeTextBlock(windowName, params)
 	end
 
 	local textblock = ""
-	params.text = params.text or ""
-	if (params.text ~= "") then
+	local text = params.text or ""
+	text = "<p class=\"" .. (params.style or "dialogDescription") .. "\">"..text.."</p>"
+	if (text ~= "") then
 		local p = {
-			text = params.text,
+			text = text,
 			font = window.dialogDefinition.dialogDescFont or self.settings.dialog.dialogDescFont,
 			size = window.dialogDefinition.dialogDescFontSize or self.settings.dialog.dialogDescFontSize,
 			width = width,
-
 			textstyles = self.textstyles,
 			defaultStyle = params.style or "dialogDescription",
 			cacheDir = "",
+			isHTML = false,
 		}
 		textblock = funx.autoWrappedText( p )
-		funx.anchorTopLeft(textblock)
+		funx.anchor(textblock, "TopLeft")
 		return textblock
 	end
 end
@@ -437,9 +443,9 @@ function S:makeButton(windowName, params)
 		id = windowName
 	end
 
-	print ("params.label", params.label)
-	local defaultColor = funx.split(params.labelDefaultColor) or {0,0,0}
-	local defaultOverColor = funx.split(params.labelOverColor) or {0,180,250,250}
+	--print ("params.label", params.label)
+	local defaultColor = funx.split(params.labelDefaultColor) or funx.stringToColorTable(self.settings.dialog.dialogButtonLabelFontColor)
+	local defaultOverColor = funx.split(params.labelOverColor) or funx.stringToColorTable(self.settings.dialog.dialogButtonLabelFontOverColor)
 	
 	local button
 	
@@ -492,11 +498,11 @@ function S:makeButton(windowName, params)
 	end
 	
 	
-	funx.anchorTopLeft(button)
+	funx.anchor(button, "TopLeft")
 	if (params.xAlign == "right") then
-		funx.anchorTopRightZero(button)
+		funx.anchorZero(button, "TopRight")
 	elseif (params.xAlign == "center") then
-		funx.anchorTopCenter(button)
+		funx.anchor(button, "TopCenter")
 	end
 
 	return button
@@ -525,11 +531,11 @@ function S:replaceButton(windowName, id, params, subs)
 			local button = S:makeButton(windowName, p)
 			self.window[windowName].elements.buttons[id].button = button
 			g:insert(button)
-			funx.anchorTopLeft(button)
+			funx.anchor(button, "TopLeft")
 			if (p.xAlign == "right") then
-				funx.anchorTopRight(button)
+				funx.anchor(button, "TopRight")
 			elseif (p.xAlign == "center") then
-				funx.anchorTopCenter(button)
+				funx.anchor(button, "TopCenter")
 			end
 			button.x = x
 			button.y = y
@@ -551,6 +557,14 @@ function S.new(params)
 	-- Blank scene is a blank scene we can use to leave a dialog when there
 	-- is no scene to go back to, i.e. when dialog is not called from another scene.
 	local blankscene = storyboard.newScene("blank")
+	
+	-- Does a scene with this name exist? If so, DUMP IT!
+	-- It is likely we'll build scenes (e.g. "reset") with the same name.
+	if storyboard.getScene(params.name) then
+		print ("WARNING: dialog.new: A dialog named ".. params.name .. " exists. I'm deleting it before creating a new one.")
+		storyboard.removeScene(params.name)
+	end
+	
 	local scene = storyboard.newScene(params.name)
 
 	-- the name of this dialog
@@ -626,26 +640,88 @@ function S.new(params)
 				---------------------------------------------------------------
 				-- TextField Listener
 				local function fieldHandler( event )
+
+					-- function for ending a field edit
+					local function doEndPhase()
+						-- This event is called when the user stops editing a field:
+						-- for example, when they touch a different field or keyboard focus goes away
+						
+						if (event.target.doneButton) then
+							event.target.doneButton:removeSelf()
+							event.target.doneButton = nil
+						end
+						
+						if (display.currentStage.y ~= 0) then 
+							transition.to (display.currentStage, { time = 250, y = 0 })
+						end
+
+
+						-- If this is a confirmation field, e.g. for a password,
+						-- check it against the main field to be sure it is the same.
+						-- If not, tell user
+						if (confirms) then
+							if (event.target.text ~= sourceField.text) then
+								funx.tellUser(settings.dialog.msgConfirmFieldDoesNotMatch)
+								event.target.text = ""
+							end
+						end
+					end
+					
+					
 					if ( "began" == event.phase ) then
 							-- This is the "keyboard has appeared" event
 							-- print ( "Event = began" )
+							
+							-- No way to get this just right, so we wing it.
+							-- iOS 8 now has suggestions and stuff above keyboard.
+							-- Let's assume 3/5 of screen height, so open area is 2/5
+							local keyboardTopY = 2 * display.contentHeight/5
+							
+							-- Show a "Done" button for text boxes.
+							if (event.target.fieldType == "textbox") then
 
-					elseif ( "ended" == event.phase ) then
-							-- This event is called when the user stops editing a field:
-							-- for example, when they touch a different field or keyboard focus goes away
-							-- print ( "Text entered = " .. tostring( event.target.text ) )
+								local doneButton
 
-							-- If this is a confirmation field, e.g. for a password,
-							-- check it against the main field to be sure it is the same.
-							-- If not, tell user
-							if (confirms) then
-								if (event.target.text ~= sourceField.text) then
-									funx.tellUser(settings.dialog.msgConfirmFieldDoesNotMatch)
-									event.target.text = ""
-								end
+									local function donePress(e)
+										e.target:removeSelf()
+										-- Hide keyboard
+										native.setKeyboardFocus(nil)
+										doEndPhase()
+									end
+
+								local defaultColor = {0,250,0}
+								local defaultOverColor = {0,180,250,250}
+
+								doneButton = widget.newButton{
+									onRelease = donePress,
+
+									shape="roundedRect",
+									label = settings.dialog.textboxDoneLabel,
+									fontSize = settings.dialog.textboxDoneFontSize,
+									font = settings.dialog.textboxDoneLabelFont,
+									emboss = settings.dialog.textboxDoneEmboss,
+									width = settings.dialog.textboxDoneWidth,
+									height = settings.dialog.textboxDoneHeight,
+									x = event.target.x + event.target.width - (settings.dialog.textboxDoneWidth/2),
+									y = event.target.y - settings.dialog.textboxDoneHeight,
+									cornerRadius = settings.dialog.textboxDoneCornerRadius,
+									labelColor = { default=funx.stringToColorTable(settings.dialog.textboxDoneLabelColor), over=funx.stringToColorTable(settings.dialog.textboxDoneLabelOverColor), },
+									fillColor = { default=funx.stringToColorTable(settings.dialog.textboxDoneFillColor), over=funx.stringToColorTable(settings.dialog.textboxDoneFillColor) },
+									strokeColor = { default=funx.stringToColorTable(settings.dialog.textboxDoneStrokeColor), over=funx.stringToColorTable(settings.dialog.textboxDoneStrokeColor) },
+									strokeWidth = settings.dialog.textboxDoneStroke,
+								}
+								event.target.doneButton = doneButton
 							end
 
 
+							-- Note, the x,y of the text field is its top left
+							if ((event.target.y + event.target.height) > keyboardTopY) then
+								local screenShiftY =  ( event.target.y + event.target.height - keyboardTopY) + 10
+								transition.to (display.currentStage, { time = 250, y = -screenShiftY })
+							end
+
+					elseif ( event.phase == "ended" or event.phase == "submitted" ) then
+						doEndPhase()
 					end
 
 				end
@@ -658,7 +734,7 @@ function S.new(params)
 		local textwidth
 		if (window.dialogDefinition.fieldDescWidth or settings.dialog.fieldDescWidth) then
 			-- Note, width can be percent of background (g object) width, not screen width
-			textwidth = funx.applyPercent(window.dialogDefinition.fieldDescWidth or self.settings.dialog.fieldDescWidth, backgroundWidth)
+			textwidth = funx.applyPercent(window.dialogDefinition.fieldDescWidth or S.settings.dialog.fieldDescWidth, backgroundWidth)
 		else
 			textwidth = backgroundWidth - innermargins.left - innermargins.right
 		end
@@ -678,7 +754,7 @@ function S.new(params)
 			}
 			descText = funx.autoWrappedText( p )
 			g:insert(descText)
-			funx.anchorTopLeft(descText)
+			funx.anchor(descText, "TopLeft")
 			descText.x = x
 			descText.y = y + descText.yAdjustment
 			y = y + descText.height + funx.percentOfScreenHeight(dialogDefinition.spaceAfterDesc or settings.dialog.spaceAfterDesc)
@@ -701,7 +777,7 @@ function S.new(params)
 			}
 			labelText = funx.autoWrappedText( p )
 			g:insert(labelText)
-			funx.anchorTopLeft(labelText)
+			funx.anchor(labelText, "TopLeft")
 			labelText.x = x
 			labelText.y = y + labelText.yAdjustment
 		end
@@ -710,12 +786,13 @@ function S.new(params)
 		local maxWidth = g.width - fieldX - innermargins.right
 		local fieldWidth = funx.applyPercent(w, g.width - (innermargins.left + innermargins.right) )
 		local fieldWidth = math.min(fieldWidth,maxWidth)
-
+		
+		h = funx.applyPercent(h, screenH - (innermargins.top + innermargins.bottom) )
 		-- Make a box to show where the textfield is.
 		-- If the dialog slides in, this is good because the text field could be show AFTER
 		-- the dialog is drawn, and it will appear as if the fields were there all along.
 		local fieldFrame = display.newRect(g, 0,0, fieldWidth, h)
-		funx.anchorTopLeft(fieldFrame)
+		funx.anchor(fieldFrame, "TopLeft")
 		fieldFrame.x = fieldX
 		fieldFrame.y = y
 
@@ -742,18 +819,19 @@ function S.new(params)
 			local textField = native.newTextBox( 0, 0, fieldWidth, h )
 			textField:setReturnKey('default')
 			textField.isEditable = true
-			funx.anchorTopLeft(textField)
+			funx.anchor(textField, "TopLeft")
 			textField.x = xScreen
 			textField.y = yScreen
 			textField.font = native.newFont( font, fontsize )
-
+			
 			local color =  funx.stringToColorTable (f.textColor or (settings.dialog.fieldTextColor or "0,0,0,100%"))
-			textField:setFillColor(unpack(color))
+			textField:setTextColor(unpack(color))
 			value = value or ""
 			textField.text = value
 			textField.isConfirmation = confirms	-- ID of the field it confirms or nil
 
 			textField:addEventListener( "userInput", fieldHandler )
+			textField.fieldType = fieldType
 
 			return textField, y
 		else
@@ -761,7 +839,7 @@ function S.new(params)
 			-- Create the native textfield
 			local textField = native.newTextField( 0, 0, fieldWidth, fontsize * 2 )
 			textField:setReturnKey('next')
-			funx.anchorTopLeft(textField)
+			funx.anchor(textField, "TopLeft")
 			textField.x = xScreen
 			textField.y = yScreen
 			textField.inputType = inputType or "default"
@@ -774,6 +852,7 @@ function S.new(params)
 			textField.isConfirmation = confirms	-- ID of the field it confirms or nil
 
 			textField:addEventListener( "userInput", fieldHandler )
+			textField.fieldType = fieldType
 
 			return textField, y
 		end
@@ -781,7 +860,7 @@ function S.new(params)
 	end
 
 
-	-- Be sure to positiong 'g' BEFORE calling, since the native fields will be positioned in relation to it,
+	-- Be sure to position 'g' BEFORE calling, since the native fields will be positioned in relation to it,
 	-- and they won't move!
 
 	local function makeDialogElements(g, windowName, dialogDefinition, backgroundWidth,backgroundHeight, x,y, conditions )
@@ -794,7 +873,7 @@ function S.new(params)
 
 		-- A positioning obj for this group, to maintain the top.
 		local headerRect = display.newRect(g, 0, 0, 0, 0)
-		funx.anchorTopLeft(headerRect)
+		funx.anchor(headerRect, "TopLeft")
 		headerRect.x = 0
 		headerRect.y = 0
 		local color = funx.stringToColorTable (settings.dialog.headerBackground or "255,255,255,100%" )
@@ -841,12 +920,12 @@ function S.new(params)
 				elements.buttons[f.id].button = button
 				g:insert(button)
 				-- Position the block
-				funx.anchorTopLeft(button)
+				funx.anchor(button, "TopLeft")
 				if (f.xAlign == "right") then
-					funx.anchorTopRightZero(button)
+					funx.anchorZero(button, "TopRight")
 					x = backgroundWidth - innermargins.right
 				elseif (f.xAlign == "center") then
-					funx.anchorTopCenter(button)
+					funx.anchor(button, "TopCenter")
 					x = backgroundWidth/2
 				end
 				button.x = x
@@ -945,7 +1024,7 @@ function S.new(params)
 		if (g) then
 			g:insert(text)
 		end
-		funx.anchorTopLeft(text)
+		funx.anchor(text, "TopLeft")
 		text.x = x
 		text.y = y + text.yAdjustment
 
@@ -966,7 +1045,7 @@ function S.new(params)
 		-- Header background, also serves as a positioning obj for this group, to maintain
 		-- the top.
 		local headerRect = display.newRoundedRect(g, 0, 0, w,settings.dialog.headerHeight, settings.dialog.cornerRadius )
-		funx.anchorTopLeft(headerRect)
+		funx.anchor(headerRect, "TopLeft")
 		headerRect.x = 0
 		headerRect.y = 0
 		local color = funx.stringToColorTable (settings.dialog.headerBackground or "255,255,255,100%" )
@@ -974,7 +1053,7 @@ function S.new(params)
 		headerRect:toBack()
 		-- A normal rect to unround the bottom corners
 		local fixCornersRect = display.newRect(g, 0, 0, w, settings.dialog.cornerRadius )
-		funx.anchorTopLeft(fixCornersRect)
+		funx.anchor(fixCornersRect, "TopLeft")
 		fixCornersRect.x = 0
 		fixCornersRect.y = headerRect.height - settings.dialog.cornerRadius
 		fixCornersRect:setFillColor(unpack(color))
@@ -998,7 +1077,7 @@ function S.new(params)
 		g:insert(titleText)
 
 		-- title
-		funx.anchorTopLeft(titleText)
+		funx.anchor(titleText, "TopLeft")
 		local color =  funx.stringToColorTable (settings.dialog.dialogTitleFontColor)
 		titleText.x = innermargins.left
 		titleText.y = innermargins.top
@@ -1027,11 +1106,16 @@ function S.new(params)
 
 		-- Add a transparent layer to dim what is behind the dialog
 		local dimmer = display.newRect(bkgd, 0,0,screenW,screenH)
+		
 		local color = funx.stringToColorTable (settings.dialog.dimmerColor or "0,0,0,50%" )
 		dimmer:setFillColor(unpack(color))
-		funx.anchorTopLeftZero(dimmer)
+		funx.anchorZero(dimmer, "TopLeft")
 		group._dimmer = dimmer
-
+		
+		dimmer.isHitTestable = true -- Only needed if alpha is 0
+		dimmer:addEventListener("touch", function() return true end)
+		dimmer:addEventListener("tap", function() return true end)
+	
 		-- DIMMER gives us positioning on the screen at top/left, now we can lock down
 		-- bkgd location
 
@@ -1073,7 +1157,7 @@ function S.new(params)
 			local dialogBackgroundElements = buildBackgroundElements(bkgdWidth, bkgdHeight, dialogDefinition)
 			bkgd:insert(dialogBackgroundElements)
 			bkgd.dialogBackgroundElements = dialogBackgroundElements
-			funx.anchorTopLeft(dialogBackgroundElements)
+			funx.anchor(dialogBackgroundElements, "TopLeft")
 
 			dialogBackgroundElements.x = margins.left
 			dialogBackgroundElements.y = margins.top
@@ -1100,9 +1184,9 @@ function S.new(params)
 					onRelease = closeDialogButtonRelease,
 				}
 				bkgd:insert(submitButton)
-				funx.anchorTopRightZero(submitButton)
+				funx.anchorZero(submitButton, "TopRight")
 				-- allow 10 px for the shadow of the popup background
-				--funx.anchorTopRightZero(r)
+				--funx.anchorZero(r, "TopRight")
 
 				-- top right corner
 				--submitButton.x = midscreenX + (bkgdWidth/2) + (submitButton.width/2)
@@ -1136,7 +1220,7 @@ function S.new(params)
 
 				--[[
 				-- top right on edge
-				funx.anchorTopRightZero(cancelButton)
+				funx.anchorZero(cancelButton, "TopRight")
 				-- allow 10 px for the shadow of the popup background
 				cancelButton.x = midscreenX + (bkgdWidth/2) + (cancelButton.width/2) - cancelButton.width - padding
 				--cancelButton.y = midscreenY - (bkgdHeight)/2 - (cancelButton.width/2)
@@ -1144,7 +1228,7 @@ function S.new(params)
 				--]]
 
 				-- top right inside
-				funx.anchorTopRightZero(cancelButton)
+				funx.anchorZero(cancelButton, "TopRight")
 				-- allow 10 px for the shadow of the popup background
 				cancelButton.x = margins.left + bkgdWidth  - xOffset - padding
 				--cancelButton.y = midscreenY - (bkgdHeight)/2 - (cancelButton.width/2)
@@ -1217,7 +1301,7 @@ function S.new(params)
 			if (params.fields and type(params.fields) == "table" ) then
 				fields = params.fields
 			elseif (params.restoreValues) then
-				all_results = funx.loadTable(DIALOG_VALUES_FILE, system.DocumentsDirectory) or {}
+				local all_results = funx.loadTable(DIALOG_VALUES_FILE, system.DocumentsDirectory) or {}
 				fields = all_results[windowName]
 			end
 
@@ -1241,8 +1325,6 @@ function S.new(params)
 				print ("ERROR: dialog: missing elements in the dialog definition. Perhaps the structure file is missing?")
 			end
 
-
-
 			x = 0
 			-- Create the fields, buttons, etc.
 			-- Make as a group, and assign to S.window[windowName].elements
@@ -1250,13 +1332,13 @@ function S.new(params)
 
 			group:insert(dialogElementsGroup)
 			group.elements = dialogElementsGroup
-			funx.anchorTopLeft(dialogElementsGroup)
+			funx.anchor(dialogElementsGroup, "TopLeft")
 			--dialogElementsGroup.x = margins.left
 			--dialogElementsGroup.y = margins.top
 
 			S.window[windowName].elements = makeDialogElements(dialogElementsGroup, windowName, dialogDefinition, bkgdWidth, bkgdHeight, x,y, conditions )
 
-			funx.anchorTopLeft(dialogElementsGroup)
+			funx.anchor(dialogElementsGroup, "TopLeft")
 			dialogElementsGroup.x = margins.left
 			dialogElementsGroup.y = margins.top + innermargins.top
 
@@ -1277,7 +1359,7 @@ function S.new(params)
 			local color = funx.stringToColorTable (backgroundColor)
 			r:setFillColor(unpack(color))
 			bkgd.background = r
-			funx.anchorTopLeft(r)
+			funx.anchor(r, "TopLeft")
 			r:toBack()
 			
 			group._dimmer:toBack()
@@ -1404,7 +1486,7 @@ function S.new(params)
 		-- Remove the fixed settings elements, since these might change and are rebuilt each time.
 		--group.dialogBackgroundElements:removeSelf()
 		--group.dialogBackgroundElements = nil
-
+--print ("scene:didExitScene")
 		group.elements:removeSelf()
 		group.elements = nil
 
@@ -1429,7 +1511,6 @@ function S.new(params)
 		local group = self.view
 
 		-----------------------------------------------------------------------------
-
 		S.window[windowName].destroyScene = true
 		S.window[windowName].exists = false
 
@@ -1478,7 +1559,8 @@ end -- new()
 
 ---------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------
-function S:showWindow(windowName, values, conditions)
+-- @vars 	table of pass-through vars, e.g ID of an item this dialog is about.
+function S:showWindow(windowName, values, conditions, vars)
 	local window = self.window[windowName]
 
 	-- Must call a 'new' before calling showWindow!
@@ -1488,12 +1570,17 @@ function S:showWindow(windowName, values, conditions)
 
 	-- update the params.values
 	if (values) then
-		S.window[windowName].params.substitutions = funx.tableMerge(S.window[windowName].params.substitutions, values)
+		window.params.substitutions = funx.tableMerge(window.params.substitutions, values)
 	end
 
 	-- update the conditions
 	if (conditions) then
-		S.window[windowName].params.conditions = conditions
+		window.params.conditions = conditions
+	end
+
+	-- update the conditions
+	if (vars) then
+		window.params.vars = vars
 	end
 
 	-- If the storyboard scene doesn't exist, we need to create it.
@@ -1516,7 +1603,8 @@ end -- show()
 ---------------------------------------------------------------------------------
 function S:removeWindow(name)
 	if (name) then
-		--storyboard:removeScene( name )
+--print ("dialog:removeWindow(" .. name .. ")")
+		storyboard.removeScene( name )
 		self.window[name] = nil
 	else
 		print ("ERROR: dialog:removeWindow(name), missing name.")
@@ -1526,5 +1614,7 @@ end -- show()
 
 ---------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------
+
+
 
 return S
